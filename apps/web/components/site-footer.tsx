@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-const LOGO_SRC = "/tnc-logo-v2-transparent.png";
+const LOGO_SRC = "/tnc-logo-v1-transparent.png";
 
 function FooterBrand() {
   return (
@@ -14,13 +14,21 @@ function FooterBrand() {
       <Image
         src={LOGO_SRC}
         alt=""
-        width={40}
-        height={40}
-        className="size-10 object-contain"
+        width={44}
+        height={44}
+        className="size-20 object-contain"
       />
-      <span className="text-sm font-bold tracking-[0.14em] text-footer-foreground uppercase">
-        True North Church
-      </span>
+      <div className="flex flex-col relative left-[-10px]">
+        <span className="text-xs font-bold tracking-[0.14em] text-footer-foreground uppercase">
+          True
+        </span>
+        <span className="text-xs font-bold tracking-[0.14em] text-footer-foreground uppercase">
+          North
+        </span>
+        <span className="text-xs font-bold tracking-[0.14em] text-footer-foreground uppercase">
+          Church
+        </span>
+      </div>
     </Link>
   );
 }

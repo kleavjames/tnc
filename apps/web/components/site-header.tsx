@@ -14,11 +14,16 @@ import {
 import { cn } from "@repo/ui/lib/utils";
 import { Logo } from "./logo";
 
-const navItems = [
-  { href: "/", label: "Home" },
-  { href: "/sermons", label: "Sermons" },
-  { href: "/about", label: "About" },
-  { href: "/events", label: "Events" },
+type NavItem = {
+  href: string;
+  label: string;
+};
+
+const navItems: NavItem[] = [
+  // { href: "/", label: "Home" },
+  // { href: "/sermons", label: "Sermons" },
+  // { href: "/about", label: "About" },
+  // { href: "/events", label: "Events" },
 ];
 
 export function SiteHeader() {
@@ -29,10 +34,7 @@ export function SiteHeader() {
       <div className="mx-auto flex h-20 w-full max-w-6xl items-center justify-between px-6 lg:px-8">
         <Logo />
 
-        <nav
-          aria-label="Primary"
-          className="hidden items-center gap-8 lg:flex"
-        >
+        <nav aria-label="Primary" className="hidden items-center gap-8 lg:flex">
           {navItems.map((item) => {
             const active = pathname === item.href;
 
@@ -90,10 +92,7 @@ export function SiteHeader() {
                   </Link>
                 );
               })}
-              <Button
-                nativeButton={false}
-                render={<Link href="/visit" />}
-              >
+              <Button nativeButton={false} render={<Link href="/visit" />}>
                 Plan a visit
               </Button>
             </nav>
