@@ -92,7 +92,11 @@ export function SiteHeader() {
                   </Link>
                 );
               })}
-              <Button nativeButton={false} render={<Link href="/visit" />}>
+              <Button
+                nativeButton={false}
+                size="xl"
+                render={<Link href="/visit" />}
+              >
                 Plan a visit
               </Button>
             </nav>

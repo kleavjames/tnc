@@ -1,19 +1,9 @@
 import type { Metadata } from "next";
-import { Oswald, Source_Sans_3 } from "next/font/google";
 import { cn } from "@repo/ui/lib/utils";
+import { montserrat } from "@repo/ui/fonts/montserrat";
 import { SiteFooter } from "../components/site-footer";
 import { SiteHeader } from "../components/site-header";
 import "./globals.css";
-
-const sourceSans = Source_Sans_3({
-  subsets: ["latin"],
-  variable: "--font-sans",
-});
-
-const oswald = Oswald({
-  subsets: ["latin"],
-  variable: "--font-heading",
-});
 
 export const metadata: Metadata = {
   title: {
@@ -30,11 +20,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={cn("font-sans", sourceSans.variable, oswald.variable)}
-    >
-      <body className="flex min-h-svh flex-col antialiased">
+    <html lang="en" className={cn("font-sans antialiased", montserrat.variable)}>
+      <body className="flex min-h-svh flex-col">
         <SiteHeader />
         <div className="flex flex-1 flex-col">{children}</div>
         <SiteFooter />

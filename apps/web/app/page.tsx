@@ -12,7 +12,7 @@ export default function Home() {
         <p className="text-sm font-semibold tracking-[0.22em] text-primary uppercase">
           Sundays | 10:00 AM & 5:00 PM
         </p>
-        <h1 className="text-5xl uppercase leading-none font-semibold tracking-tight whitespace-nowrap sm:text-5xl lg:text-6xl">
+        <h1 className="text-5xl uppercase leading-none font-extrabold tracking-tight whitespace-nowrap sm:text-5xl lg:text-6xl">
           Always pointing to Christ
         </h1>
         <p className="max-w-lg text-lg leading-8 text-muted-foreground">
