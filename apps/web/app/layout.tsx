@@ -5,6 +5,7 @@ import { PlanVisitModalProvider } from "../components/plan-visit-modal";
 import { SiteFooter } from "../components/site-footer";
 import { SiteHeader } from "../components/site-header";
 import "./globals.css";
+import { TooltipProvider } from "@repo/ui/components/tooltip";
 
 export const metadata: Metadata = {
   title: {
@@ -21,12 +22,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("font-sans antialiased", montserrat.variable)}>
+    <html
+      lang="en"
+      className={cn("font-sans antialiased", montserrat.variable)}
+    >
       <body className="flex min-h-svh flex-col">
         <PlanVisitModalProvider>
-          <SiteHeader />
-          <div className="flex flex-1 flex-col">{children}</div>
-          <SiteFooter />
+          <TooltipProvider>
+            <SiteHeader />
+            <div className="flex flex-1 flex-col">{children}</div>
+            <SiteFooter />
+          </TooltipProvider>
         </PlanVisitModalProvider>
       </body>
     </html>

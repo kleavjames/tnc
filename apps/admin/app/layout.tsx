@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cn } from "@repo/ui/lib/utils";
 import { montserrat } from "@repo/ui/fonts/montserrat";
 import "./globals.css";
+import { TooltipProvider } from "@repo/ui/components/tooltip";
 
 export const metadata: Metadata = {
   title: "Sign in | True North Church",
@@ -20,7 +21,7 @@ export default function RootLayout({
       className={cn("h-full font-sans antialiased", montserrat.variable)}
     >
       <body className="flex min-h-full flex-col bg-background text-foreground">
-        {children}
+        <TooltipProvider>{children}</TooltipProvider>
       </body>
     </html>
   );
