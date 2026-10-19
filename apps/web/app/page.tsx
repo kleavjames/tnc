@@ -31,7 +31,7 @@ export default function Home() {
             size="xl"
             variant="outline"
             nativeButton={false}
-            render={<Link href="/sermons" />}
+            // render={<Link href="/sermons" />}
           >
             <PlayIcon data-icon="inline-start" />
             Watch latest sermon
