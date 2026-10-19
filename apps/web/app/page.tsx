@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { PlayIcon } from "lucide-react";
 import { Button } from "@repo/ui/components/button";
 import { TrueNorthMark } from "../components/logo";
+import { PlanVisitButton } from "../components/plan-visit-modal";
 
 export default function Home() {
   return (
@@ -20,13 +20,7 @@ export default function Home() {
           honest worship, the Word, and real community. Come as you are.
         </p>
         <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Button
-            size="xl"
-            nativeButton={false}
-            render={<Link href="/visit" />}
-          >
-            Plan a visit
-          </Button>
+          <PlanVisitButton size="xl">Plan a visit</PlanVisitButton>
           <Button
             size="xl"
             variant="outline"

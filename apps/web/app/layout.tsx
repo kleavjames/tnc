@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { cn } from "@repo/ui/lib/utils";
 import { montserrat } from "@repo/ui/fonts/montserrat";
+import { PlanVisitModalProvider } from "../components/plan-visit-modal";
 import { SiteFooter } from "../components/site-footer";
 import { SiteHeader } from "../components/site-header";
 import "./globals.css";
@@ -22,9 +23,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("font-sans antialiased", montserrat.variable)}>
       <body className="flex min-h-svh flex-col">
-        <SiteHeader />
-        <div className="flex flex-1 flex-col">{children}</div>
-        <SiteFooter />
+        <PlanVisitModalProvider>
+          <SiteHeader />
+          <div className="flex flex-1 flex-col">{children}</div>
+          <SiteFooter />
+        </PlanVisitModalProvider>
       </body>
     </html>
   );

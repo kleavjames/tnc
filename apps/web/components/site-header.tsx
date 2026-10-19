@@ -13,6 +13,7 @@ import {
 } from "@repo/ui/components/sheet";
 import { cn } from "@repo/ui/lib/utils";
 import { Logo } from "./logo";
+import { PlanVisitButton } from "./plan-visit-modal";
 
 type NavItem = {
   href: string;
@@ -53,13 +54,7 @@ export function SiteHeader() {
               </Link>
             );
           })}
-          <Button
-            size="lg"
-            nativeButton={false}
-            render={<Link href="/visit" />}
-          >
-            Plan a visit
-          </Button>
+          <PlanVisitButton size="lg">Plan a visit</PlanVisitButton>
         </nav>
 
         <Sheet>
@@ -92,13 +87,7 @@ export function SiteHeader() {
                   </Link>
                 );
               })}
-              <Button
-                nativeButton={false}
-                size="xl"
-                render={<Link href="/visit" />}
-              >
-                Plan a visit
-              </Button>
+              <PlanVisitButton size="xl">Plan a visit</PlanVisitButton>
             </nav>
           </SheetContent>
         </Sheet>
