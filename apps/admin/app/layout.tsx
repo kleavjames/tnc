@@ -4,8 +4,9 @@ import { montserrat } from "@repo/ui/fonts/montserrat";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Admin",
-  description: "TNC admin",
+  title: "Sign in | True North Church",
+  description:
+    "Sign in to the True North Church admin portal to manage sermons and articles.",
 };
 
 export default function RootLayout({
