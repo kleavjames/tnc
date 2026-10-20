@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import Image from "next/image";
+import { redirect } from "next/navigation";
 import { MailIcon } from "lucide-react";
 import { Button, buttonVariants } from "@repo/ui/components/button";
 import { Checkbox } from "@repo/ui/components/checkbox";
@@ -9,44 +11,20 @@ import {
   FieldLabel,
 } from "@repo/ui/components/field";
 import { Input } from "@repo/ui/components/input";
-import { Separator } from "@repo/ui/components/separator";
 import { cn } from "@repo/ui/lib/utils";
 import { Marker, MarkerContent } from "@repo/ui/components/marker";
+import { BrandMark } from "../components/brand-mark";
+
+export const metadata: Metadata = {
+  title: "Sign in",
+};
 
 const LOGO_SRC = "/tnc-logo-v2-transparent.png";
 const FEATURES = ["Sermons", "Notes", "Audio", "Downloads"] as const;
 
 async function signIn(_formData: FormData) {
   "use server";
-}
-
-function BrandMark({ className }: { className?: string }) {
-  return (
-    <div
-      className={cn("flex items-center gap-2.5", className)}
-      aria-label="True North Church"
-    >
-      <Image
-        src={LOGO_SRC}
-        alt=""
-        width={48}
-        height={48}
-        className="size-11 object-contain"
-        priority
-      />
-      <div className="flex flex-col leading-none">
-        <span className="text-[0.65rem] font-bold tracking-[0.16em] uppercase">
-          True
-        </span>
-        <span className="text-[0.65rem] font-bold tracking-[0.16em] uppercase">
-          North
-        </span>
-        <span className="text-[0.65rem] font-bold tracking-[0.16em] uppercase">
-          Church
-        </span>
-      </div>
-    </div>
-  );
+  redirect("/articles");
 }
 
 export default function Home() {

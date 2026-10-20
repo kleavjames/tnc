@@ -5,7 +5,10 @@ import "./globals.css";
 import { TooltipProvider } from "@repo/ui/components/tooltip";
 
 export const metadata: Metadata = {
-  title: "Sign in | True North Church",
+  title: {
+    default: "Admin | True North Church",
+    template: "%s | True North Church",
+  },
   description:
     "Sign in to the True North Church admin portal to manage sermons and articles.",
 };
