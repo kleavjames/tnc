@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import {
   LayoutGridIcon,
   ListIcon,
@@ -67,7 +68,11 @@ type ViewMode = "list" | "covers";
 
 const typeTabs: Array<{ value: TypeFilter; label: string; count: number }> = [
   { value: "all", label: "All", count: ARTICLE_TYPE_COUNTS.all },
-  { value: "glc", label: ARTICLE_TYPE_LABELS.glc, count: ARTICLE_TYPE_COUNTS.glc },
+  {
+    value: "glc",
+    label: ARTICLE_TYPE_LABELS.glc,
+    count: ARTICLE_TYPE_COUNTS.glc,
+  },
   {
     value: "life-on-life",
     label: ARTICLE_TYPE_LABELS["life-on-life"],
@@ -91,23 +96,21 @@ const sortItems = [
   { label: "Title A–Z", value: "title" },
 ];
 
-function ResourceCover({
-  title,
-  className,
-}: {
-  title: string;
-  className?: string;
-}) {
+function ResourceCover({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "flex items-end overflow-hidden rounded-md bg-muted p-1.5",
+        "flex items-center justify-center overflow-hidden rounded-md bg-muted",
         className,
       )}
     >
-      <span className="line-clamp-3 text-[0.55rem] leading-tight font-bold tracking-wide text-foreground/80 uppercase">
-        {title}
-      </span>
+      <Image
+        src="/tnc-logo-v2-transparent.png"
+        alt=""
+        width={80}
+        height={80}
+        className="size-1/2 object-contain"
+      />
     </div>
   );
 }
@@ -238,11 +241,13 @@ export function ResourcesView() {
           value={type}
           onValueChange={(value) => setType(value as TypeFilter)}
         >
-          <TabsList variant="line">
+          <TabsList variant="line" className="gap-2">
             {typeTabs.map((tab) => (
               <TabsTrigger key={tab.value} value={tab.value}>
                 {tab.label}
-                <Badge variant="secondary">{tab.count}</Badge>
+                <Badge variant="tertiary" className="text-[0.625rem]">
+                  {tab.count}
+                </Badge>
               </TabsTrigger>
             ))}
           </TabsList>
@@ -354,11 +359,13 @@ function ResourcesTable({ articles }: { articles: Article[] }) {
             <TableRow key={article.id}>
               <TableCell>
                 <div className="flex items-center gap-3">
-                  <ResourceCover
-                    title={article.title}
-                    className="size-12 shrink-0"
-                  />
-                  <span className="truncate font-medium">{article.title}</span>
+                  <ResourceCover className="size-12 shrink-0" />
+                  <div className="flex min-w-0 flex-col">
+                    <span className="truncate font-medium">{article.title}</span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {article.scripture}
+                    </span>
+                  </div>
                 </div>
               </TableCell>
               <TableCell>{article.series}</TableCell>
@@ -382,15 +389,18 @@ function ResourcesCoverGrid({ articles }: { articles: Article[] }) {
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
       {articles.map((article) => (
         <Card key={article.id}>
-          <ResourceCover title={article.title} className="mx-4 aspect-[4/3]" />
+          <ResourceCover className="mx-4 aspect-[4/3]" />
           <CardHeader>
             <div className="flex items-start justify-between gap-2">
-              <CardTitle>{article.title}</CardTitle>
+              <div className="flex min-w-0 flex-col gap-1">
+                <CardTitle>{article.title}</CardTitle>
+                <span className="text-sm text-muted-foreground">
+                  {article.scripture}
+                </span>
+              </div>
               <ResourceActions title={article.title} />
             </div>
-            <CardDescription>
-              {article.scripture} · {article.speaker}
-            </CardDescription>
+            <CardDescription>{article.speaker}</CardDescription>
             <TypeBadge type={article.type} />
           </CardHeader>
         </Card>
