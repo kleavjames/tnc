@@ -211,9 +211,9 @@ export function ResourcesView() {
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
           <p className="text-xs font-bold tracking-[0.18em] text-primary uppercase">
-            Sermons & articles
+            Articles, Sermons, and more
           </p>
-          <h1 className="text-3xl font-bold tracking-tight">Articles</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Resources</h1>
         </div>
         <ToggleGroup
           variant="outline"
@@ -361,7 +361,9 @@ function ResourcesTable({ articles }: { articles: Article[] }) {
                 <div className="flex items-center gap-3">
                   <ResourceCover className="size-12 shrink-0" />
                   <div className="flex min-w-0 flex-col">
-                    <span className="truncate font-medium">{article.title}</span>
+                    <span className="truncate font-medium">
+                      {article.title}
+                    </span>
                     <span className="truncate text-xs text-muted-foreground">
                       {article.scripture}
                     </span>
