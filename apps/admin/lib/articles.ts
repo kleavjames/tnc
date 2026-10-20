@@ -1,4 +1,4 @@
-export type ArticleStatus = "published" | "scheduled" | "draft";
+export type ArticleType = "glc" | "life-on-life" | "sermons";
 
 export type Article = {
   id: string;
@@ -6,10 +6,8 @@ export type Article = {
   scripture: string;
   speaker: string;
   series: string;
-  serviceDate: string;
-  files: Array<"PDF" | "MP3">;
-  downloads: number | null;
-  status: ArticleStatus;
+  type: ArticleType;
+  dateUploaded: string;
 };
 
 export const ARTICLES: Article[] = [
@@ -19,10 +17,8 @@ export const ARTICLES: Article[] = [
     scripture: "Matthew 28:20",
     speaker: "Ptr. Daniel Reyes",
     series: "Emmanuel",
-    serviceDate: "Dec 28, 2025",
-    files: ["PDF", "MP3"],
-    downloads: null,
-    status: "scheduled",
+    type: "sermons",
+    dateUploaded: "Dec 28, 2025",
   },
   {
     id: "love-that-transforms",
@@ -30,10 +26,8 @@ export const ARTICLES: Article[] = [
     scripture: "1 John 4:7-12",
     speaker: "Ptr. Daniel Reyes",
     series: "Emmanuel",
-    serviceDate: "Dec 21, 2025",
-    files: ["PDF", "MP3"],
-    downloads: 312,
-    status: "published",
+    type: "sermons",
+    dateUploaded: "Dec 21, 2025",
   },
   {
     id: "room-for-him",
@@ -41,10 +35,8 @@ export const ARTICLES: Article[] = [
     scripture: "Luke 2:1-7",
     speaker: "Ptr. Grace Lim",
     series: "Emmanuel",
-    serviceDate: "Dec 14, 2025",
-    files: ["PDF"],
-    downloads: 248,
-    status: "published",
+    type: "sermons",
+    dateUploaded: "Dec 14, 2025",
   },
   {
     id: "waiting-well",
@@ -52,10 +44,8 @@ export const ARTICLES: Article[] = [
     scripture: "Isaiah 40:27-31",
     speaker: "Ptr. Daniel Reyes",
     series: "Emmanuel",
-    serviceDate: "Dec 7, 2025",
-    files: ["PDF", "MP3"],
-    downloads: 290,
-    status: "published",
+    type: "life-on-life",
+    dateUploaded: "Dec 7, 2025",
   },
   {
     id: "grateful-hearts",
@@ -63,10 +53,8 @@ export const ARTICLES: Article[] = [
     scripture: "Psalm 100",
     speaker: "Bro. Mark Tan",
     series: "Standalone",
-    serviceDate: "Nov 30, 2025",
-    files: ["MP3"],
-    downloads: 176,
-    status: "published",
+    type: "life-on-life",
+    dateUploaded: "Nov 30, 2025",
   },
   {
     id: "rooted",
@@ -74,10 +62,8 @@ export const ARTICLES: Article[] = [
     scripture: "Colossians 2:6-7",
     speaker: "Ptr. Grace Lim",
     series: "New Year 2026",
-    serviceDate: "Jan 4, 2026",
-    files: ["PDF"],
-    downloads: null,
-    status: "draft",
+    type: "glc",
+    dateUploaded: "Jan 4, 2026",
   },
   {
     id: "salt-and-light",
@@ -85,10 +71,8 @@ export const ARTICLES: Article[] = [
     scripture: "Matthew 5:13-16",
     speaker: "Ptr. Daniel Reyes",
     series: "Sermon on the Mount",
-    serviceDate: "Nov 23, 2025",
-    files: ["PDF", "MP3"],
-    downloads: 205,
-    status: "published",
+    type: "glc",
+    dateUploaded: "Nov 23, 2025",
   },
   {
     id: "ask-seek-knock",
@@ -96,18 +80,23 @@ export const ARTICLES: Article[] = [
     scripture: "Matthew 7:7-12",
     speaker: "Ptr. Grace Lim",
     series: "Sermon on the Mount",
-    serviceDate: "Nov 16, 2025",
-    files: ["PDF", "MP3"],
-    downloads: 231,
-    status: "published",
+    type: "glc",
+    dateUploaded: "Nov 16, 2025",
   },
 ];
 
-export const ARTICLE_STATUS_COUNTS = {
-  all: 24,
-  published: 21,
-  scheduled: 1,
-  drafts: 2,
+export const ARTICLE_TYPE_LABELS: Record<ArticleType, string> = {
+  glc: "GLC",
+  "life-on-life": "Life on Life",
+  sermons: "Sermons",
+};
+
+export const ARTICLE_TYPE_COUNTS = {
+  all: ARTICLES.length,
+  glc: ARTICLES.filter((article) => article.type === "glc").length,
+  "life-on-life": ARTICLES.filter((article) => article.type === "life-on-life")
+    .length,
+  sermons: ARTICLES.filter((article) => article.type === "sermons").length,
 } as const;
 
 export const ARTICLE_SERIES = [

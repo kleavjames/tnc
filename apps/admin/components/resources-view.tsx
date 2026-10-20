@@ -56,29 +56,29 @@ import { cn } from "@repo/ui/lib/utils";
 import {
   ARTICLES,
   ARTICLE_SERIES,
-  ARTICLE_STATUS_COUNTS,
+  ARTICLE_TYPE_COUNTS,
+  ARTICLE_TYPE_LABELS,
   type Article,
-  type ArticleStatus,
+  type ArticleType,
 } from "../lib/articles";
 
-type StatusFilter = "all" | ArticleStatus;
+type TypeFilter = "all" | ArticleType;
 type ViewMode = "list" | "covers";
 
-const statusTabs: Array<{ value: StatusFilter; label: string; count: number }> =
-  [
-    { value: "all", label: "All", count: ARTICLE_STATUS_COUNTS.all },
-    {
-      value: "published",
-      label: "Published",
-      count: ARTICLE_STATUS_COUNTS.published,
-    },
-    {
-      value: "scheduled",
-      label: "Scheduled",
-      count: ARTICLE_STATUS_COUNTS.scheduled,
-    },
-    { value: "draft", label: "Drafts", count: ARTICLE_STATUS_COUNTS.drafts },
-  ];
+const typeTabs: Array<{ value: TypeFilter; label: string; count: number }> = [
+  { value: "all", label: "All", count: ARTICLE_TYPE_COUNTS.all },
+  { value: "glc", label: ARTICLE_TYPE_LABELS.glc, count: ARTICLE_TYPE_COUNTS.glc },
+  {
+    value: "life-on-life",
+    label: ARTICLE_TYPE_LABELS["life-on-life"],
+    count: ARTICLE_TYPE_COUNTS["life-on-life"],
+  },
+  {
+    value: "sermons",
+    label: ARTICLE_TYPE_LABELS.sermons,
+    count: ARTICLE_TYPE_COUNTS.sermons,
+  },
+];
 
 const seriesItems = [
   { label: "Series: All", value: "all" },
@@ -112,25 +112,8 @@ function ResourceCover({
   );
 }
 
-function StatusBadge({ status }: { status: ArticleStatus }) {
-  const label =
-    status === "draft"
-      ? "Draft"
-      : status === "scheduled"
-        ? "Scheduled"
-        : "Published";
-
-  return (
-    <Badge variant="secondary">
-      <span
-        className={cn(
-          "size-1.5 rounded-full",
-          status === "draft" ? "border border-foreground/40" : "bg-primary",
-        )}
-      />
-      {label}
-    </Badge>
-  );
+function TypeBadge({ type }: { type: ArticleType }) {
+  return <Badge variant="secondary">{ARTICLE_TYPE_LABELS[type]}</Badge>;
 }
 
 function ResourceActions({ title }: { title: string }) {
@@ -154,12 +137,12 @@ function ResourceActions({ title }: { title: string }) {
 function filterResources(
   articles: Article[],
   {
-    status,
+    type,
     query,
     series,
     sort,
   }: {
-    status: StatusFilter;
+    type: TypeFilter;
     query: string;
     series: string;
     sort: string;
@@ -168,7 +151,7 @@ function filterResources(
   const normalized = query.trim().toLowerCase();
 
   const filtered = articles.filter((article) => {
-    const matchesStatus = status === "all" || article.status === status;
+    const matchesType = type === "all" || article.type === type;
     const matchesSeries = series === "all" || article.series === series;
     const matchesQuery =
       normalized.length === 0 ||
@@ -176,7 +159,7 @@ function filterResources(
       article.speaker.toLowerCase().includes(normalized) ||
       article.scripture.toLowerCase().includes(normalized);
 
-    return matchesStatus && matchesSeries && matchesQuery;
+    return matchesType && matchesSeries && matchesQuery;
   });
 
   if (sort === "newest") {
@@ -188,20 +171,20 @@ function filterResources(
       return a.title.localeCompare(b.title);
     }
 
-    const aTime = Date.parse(a.serviceDate);
-    const bTime = Date.parse(b.serviceDate);
+    const aTime = Date.parse(a.dateUploaded);
+    const bTime = Date.parse(b.dateUploaded);
     return aTime - bTime;
   });
 }
 
 export function ResourcesView() {
-  const [status, setStatus] = React.useState<StatusFilter>("all");
+  const [type, setType] = React.useState<TypeFilter>("all");
   const [view, setView] = React.useState<ViewMode>("list");
   const [query, setQuery] = React.useState("");
   const [series, setSeries] = React.useState("all");
   const [sort, setSort] = React.useState("newest");
 
-  const articles = filterResources(ARTICLES, { status, query, series, sort });
+  const articles = filterResources(ARTICLES, { type, query, series, sort });
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-6 lg:p-8">
@@ -252,11 +235,11 @@ export function ResourcesView() {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Tabs
-          value={status}
-          onValueChange={(value) => setStatus(value as StatusFilter)}
+          value={type}
+          onValueChange={(value) => setType(value as TypeFilter)}
         >
           <TabsList variant="line">
-            {statusTabs.map((tab) => (
+            {typeTabs.map((tab) => (
               <TabsTrigger key={tab.value} value={tab.value}>
                 {tab.label}
                 <Badge variant="secondary">{tab.count}</Badge>
@@ -321,7 +304,7 @@ export function ResourcesView() {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
-          Showing {articles.length} of {ARTICLE_STATUS_COUNTS.all} articles
+          Showing {articles.length} of {ARTICLE_TYPE_COUNTS.all} articles
         </p>
         <Pagination className="mx-0 w-auto justify-end">
           <PaginationContent>
@@ -350,22 +333,16 @@ function ResourcesTable({ articles }: { articles: Article[] }) {
         <TableHeader>
           <TableRow>
             <TableHead className="text-muted-foreground font-bold">
-              Sermon
+              Title
             </TableHead>
             <TableHead className="text-muted-foreground font-bold">
-              Speaker
-            </TableHead>
-            <TableHead className="hidden text-muted-foreground font-bold xl:table-cell">
               Series
             </TableHead>
-            <TableHead className="hidden text-muted-foreground font-bold md:table-cell">
-              Service date
+            <TableHead className="text-muted-foreground font-bold">
+              Type
             </TableHead>
             <TableHead className="text-muted-foreground font-bold">
-              Downloads
-            </TableHead>
-            <TableHead className="text-muted-foreground font-bold">
-              Status
+              Date uploaded
             </TableHead>
             <TableHead className="w-10">
               <span className="sr-only">Actions</span>
@@ -381,40 +358,14 @@ function ResourcesTable({ articles }: { articles: Article[] }) {
                     title={article.title}
                     className="size-12 shrink-0"
                   />
-                  <div className="flex min-w-0 flex-col">
-                    <span className="truncate font-medium">
-                      {article.title}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {article.scripture}
-                    </span>
-                  </div>
+                  <span className="truncate font-medium">{article.title}</span>
                 </div>
               </TableCell>
-              <TableCell>{article.speaker}</TableCell>
-              <TableCell className="hidden xl:table-cell">
-                {article.series}
-              </TableCell>
-              <TableCell className="hidden md:table-cell">
-                {article.serviceDate}
-              </TableCell>
+              <TableCell>{article.series}</TableCell>
               <TableCell>
-                <div className="flex items-center gap-1.5">
-                  {article.files.map((file) => (
-                    <Badge key={file} variant="secondary">
-                      {file}
-                    </Badge>
-                  ))}
-                  {article.downloads ? (
-                    <span className="text-xs text-muted-foreground">
-                      {article.downloads} downloads
-                    </span>
-                  ) : null}
-                </div>
+                <TypeBadge type={article.type} />
               </TableCell>
-              <TableCell>
-                <StatusBadge status={article.status} />
-              </TableCell>
+              <TableCell>{article.dateUploaded}</TableCell>
               <TableCell>
                 <ResourceActions title={article.title} />
               </TableCell>
@@ -440,7 +391,7 @@ function ResourcesCoverGrid({ articles }: { articles: Article[] }) {
             <CardDescription>
               {article.scripture} · {article.speaker}
             </CardDescription>
-            <StatusBadge status={article.status} />
+            <TypeBadge type={article.type} />
           </CardHeader>
         </Card>
       ))}
