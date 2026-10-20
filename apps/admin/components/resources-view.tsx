@@ -91,7 +91,7 @@ const sortItems = [
   { label: "Title A–Z", value: "title" },
 ];
 
-function ArticleCover({
+function ResourceCover({
   title,
   className,
 }: {
@@ -114,7 +114,11 @@ function ArticleCover({
 
 function StatusBadge({ status }: { status: ArticleStatus }) {
   const label =
-    status === "draft" ? "Draft" : status === "scheduled" ? "Scheduled" : "Published";
+    status === "draft"
+      ? "Draft"
+      : status === "scheduled"
+        ? "Scheduled"
+        : "Published";
 
   return (
     <Badge variant="secondary">
@@ -129,12 +133,10 @@ function StatusBadge({ status }: { status: ArticleStatus }) {
   );
 }
 
-function ArticleActions({ title }: { title: string }) {
+function ResourceActions({ title }: { title: string }) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        render={<Button variant="ghost" size="icon" />}
-      >
+      <DropdownMenuTrigger render={<Button variant="ghost" size="icon" />}>
         <MoreHorizontalIcon />
         <span className="sr-only">Open actions for {title}</span>
       </DropdownMenuTrigger>
@@ -149,7 +151,7 @@ function ArticleActions({ title }: { title: string }) {
   );
 }
 
-function filterArticles(
+function filterResources(
   articles: Article[],
   {
     status,
@@ -192,19 +194,19 @@ function filterArticles(
   });
 }
 
-export function ArticlesView() {
+export function ResourcesView() {
   const [status, setStatus] = React.useState<StatusFilter>("all");
   const [view, setView] = React.useState<ViewMode>("list");
   const [query, setQuery] = React.useState("");
   const [series, setSeries] = React.useState("all");
   const [sort, setSort] = React.useState("newest");
 
-  const articles = filterArticles(ARTICLES, { status, query, series, sort });
+  const articles = filterResources(ARTICLES, { status, query, series, sort });
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-6 lg:p-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <InputGroup className="max-w-md">
+        <InputGroup className="max-w-md rounded-md">
           <InputGroupInput
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -222,7 +224,7 @@ export function ArticlesView() {
 
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <p className="text-xs font-semibold tracking-[0.18em] text-primary uppercase">
+          <p className="text-xs font-bold tracking-[0.18em] text-primary uppercase">
             Sermons & articles
           </p>
           <h1 className="text-3xl font-bold tracking-tight">Articles</h1>
@@ -312,9 +314,9 @@ export function ArticlesView() {
       </div>
 
       {view === "list" ? (
-        <ArticlesTable articles={articles} />
+        <ResourcesTable articles={articles} />
       ) : (
-        <ArticlesCoverGrid articles={articles} />
+        <ResourcesCoverGrid articles={articles} />
       )}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -341,22 +343,30 @@ export function ArticlesView() {
   );
 }
 
-function ArticlesTable({ articles }: { articles: Article[] }) {
+function ResourcesTable({ articles }: { articles: Article[] }) {
   return (
-    <div className="overflow-hidden rounded-xl border">
+    <div className="overflow-hidden rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="text-muted-foreground">Sermon</TableHead>
-            <TableHead className="text-muted-foreground">Speaker</TableHead>
-            <TableHead className="hidden text-muted-foreground xl:table-cell">
+            <TableHead className="text-muted-foreground font-bold">
+              Sermon
+            </TableHead>
+            <TableHead className="text-muted-foreground font-bold">
+              Speaker
+            </TableHead>
+            <TableHead className="hidden text-muted-foreground font-bold xl:table-cell">
               Series
             </TableHead>
-            <TableHead className="hidden text-muted-foreground md:table-cell">
+            <TableHead className="hidden text-muted-foreground font-bold md:table-cell">
               Service date
             </TableHead>
-            <TableHead className="text-muted-foreground">Downloads</TableHead>
-            <TableHead className="text-muted-foreground">Status</TableHead>
+            <TableHead className="text-muted-foreground font-bold">
+              Downloads
+            </TableHead>
+            <TableHead className="text-muted-foreground font-bold">
+              Status
+            </TableHead>
             <TableHead className="w-10">
               <span className="sr-only">Actions</span>
             </TableHead>
@@ -367,9 +377,14 @@ function ArticlesTable({ articles }: { articles: Article[] }) {
             <TableRow key={article.id}>
               <TableCell>
                 <div className="flex items-center gap-3">
-                  <ArticleCover title={article.title} className="size-12 shrink-0" />
+                  <ResourceCover
+                    title={article.title}
+                    className="size-12 shrink-0"
+                  />
                   <div className="flex min-w-0 flex-col">
-                    <span className="truncate font-medium">{article.title}</span>
+                    <span className="truncate font-medium">
+                      {article.title}
+                    </span>
                     <span className="text-xs text-muted-foreground">
                       {article.scripture}
                     </span>
@@ -401,7 +416,7 @@ function ArticlesTable({ articles }: { articles: Article[] }) {
                 <StatusBadge status={article.status} />
               </TableCell>
               <TableCell>
-                <ArticleActions title={article.title} />
+                <ResourceActions title={article.title} />
               </TableCell>
             </TableRow>
           ))}
@@ -411,16 +426,16 @@ function ArticlesTable({ articles }: { articles: Article[] }) {
   );
 }
 
-function ArticlesCoverGrid({ articles }: { articles: Article[] }) {
+function ResourcesCoverGrid({ articles }: { articles: Article[] }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
       {articles.map((article) => (
         <Card key={article.id}>
-          <ArticleCover title={article.title} className="mx-4 aspect-[4/3]" />
+          <ResourceCover title={article.title} className="mx-4 aspect-[4/3]" />
           <CardHeader>
             <div className="flex items-start justify-between gap-2">
               <CardTitle>{article.title}</CardTitle>
-              <ArticleActions title={article.title} />
+              <ResourceActions title={article.title} />
             </div>
             <CardDescription>
               {article.scripture} · {article.speaker}

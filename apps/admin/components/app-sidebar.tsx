@@ -28,8 +28,6 @@ import {
 import { cn } from "@repo/ui/lib/utils";
 import { BrandMark } from "./brand-mark";
 
-const sidebarNavMenuClassName = "px-1";
-
 function sidebarNavItemClassName(isActive: boolean) {
   return cn(
     "rounded-md px-2 py-2.5 transition-colors",
@@ -40,11 +38,14 @@ function sidebarNavItemClassName(isActive: boolean) {
 }
 
 const sidebarNavButtonClassName =
-  "h-8 min-h-8 bg-transparent p-0 shadow-none hover:bg-transparent active:bg-transparent data-active:bg-transparent data-active:font-medium data-active:text-inherit hover:text-inherit";
+  "h-8 min-h-8 items-center bg-transparent p-0 shadow-none hover:bg-transparent active:bg-transparent data-active:bg-transparent data-active:font-medium data-active:text-inherit hover:text-inherit";
+
+const sidebarProfileButtonClassName =
+  "h-auto min-h-0 items-center gap-2.5 bg-transparent p-0 shadow-none hover:bg-transparent active:bg-transparent hover:text-inherit";
 
 const contentItems = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboardIcon },
-  { title: "Articles", href: "/articles", icon: FileTextIcon, badge: 24 },
+  { title: "Resources", href: "/resources", icon: FileTextIcon },
   { title: "Series", href: "/series", icon: LayersIcon },
   { title: "Speakers", href: "/speakers", icon: UserIcon },
   { title: "Media library", href: "/media", icon: FolderIcon },
@@ -69,7 +70,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>Content</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className={sidebarNavMenuClassName}>
+            <SidebarMenu className="px-1">
               {contentItems.map((item) => {
                 const isActive = pathname === item.href;
 
@@ -88,7 +89,9 @@ export function AppSidebar() {
                       <span className="font-semibold">{item.title}</span>
                     </SidebarMenuButton>
                     {"badge" in item ? (
-                      <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
+                      <SidebarMenuBadge className="top-1/2! -translate-y-1/2! right-2 bg-sidebar-accent text-sidebar-accent-foreground">
+                        {item?.badge as React.ReactNode}
+                      </SidebarMenuBadge>
                     ) : null}
                   </SidebarMenuItem>
                 );
@@ -100,7 +103,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>Church</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className={sidebarNavMenuClassName}>
+            <SidebarMenu className="px-1">
               {churchItems.map((item) => {
                 const isActive = pathname === item.href;
 
@@ -129,16 +132,13 @@ export function AppSidebar() {
       <SidebarSeparator />
 
       <SidebarFooter>
-        <SidebarMenu className={sidebarNavMenuClassName}>
+        <SidebarMenu className="px-1">
           <SidebarMenuItem className={sidebarNavItemClassName(false)}>
-            <SidebarMenuButton
-              size="lg"
-              className="h-auto min-h-0 bg-transparent p-0 hover:bg-transparent active:bg-transparent hover:text-inherit"
-            >
-              <Avatar size="sm">
+            <SidebarMenuButton className={sidebarProfileButtonClassName}>
+              <Avatar className="shrink-0">
                 <AvatarFallback>MS</AvatarFallback>
               </Avatar>
-              <div className="flex min-w-0 flex-col items-start leading-tight">
+              <div className="flex min-w-0 flex-col justify-center gap-0.5 leading-none">
                 <span className="truncate text-sm font-medium">
                   Maria Santos
                 </span>
