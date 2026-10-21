@@ -11,3 +11,41 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum ArticleType {
+  glc
+  lnl
+  sermon
+}
+
+/// A named collection of articles. The cover lives in Cloudflare R2; `imageKey` is the object key.
+model Series {
+  id        String    @id @default(cuid())
+  title     String
+  imageKey  String?
+  articles  Article[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("series")
+}
+
+/// Teaching content. `imageKey` and `fileKey` are Cloudflare R2 object keys, not public URLs.
+model Article {
+  id         String      @id @default(cuid())
+  title      String
+  verse      String
+  uploadedAt DateTime    @default(now())
+  tags       String[]    @default([])
+  type       ArticleType
+  imageKey   String?
+  fileKey    String?
+  seriesId   String?
+  series     Series?     @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([type])
+  @@index([uploadedAt])
+  @@map("articles")
+}
