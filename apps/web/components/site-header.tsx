@@ -42,16 +42,17 @@ const aboutItems: NavItem[] = [
   { href: "/about/tnc-communities", label: "TNC Communities" },
 ];
 
-const triggerClass = "text-xs font-semibold tracking-[0.18em] uppercase";
+const triggerClass =
+  "text-xs font-semibold tracking-[0.18em] text-primary-foreground uppercase hover:bg-primary-foreground/10 focus:bg-primary-foreground/10 data-popup-open:bg-primary-foreground/15 data-popup-open:hover:bg-primary-foreground/15 data-open:bg-primary-foreground/15 data-open:hover:bg-primary-foreground/15 data-open:focus:bg-primary-foreground/15";
 
 export function SiteHeader() {
   const pathname = usePathname();
   const aboutActive = pathname.startsWith("/about");
 
   return (
-    <header className="bg-card">
+    <header className="bg-primary text-primary-foreground">
       <div className="mx-auto flex h-20 w-full max-w-6xl items-center justify-between px-6 lg:px-8">
-        <Logo />
+        <Logo className="[&_img]:brightness-0 [&_img]:invert" />
 
         <div className="hidden items-center gap-4 lg:flex">
           <NavigationMenu aria-label="Primary">
@@ -69,7 +70,10 @@ export function SiteHeader() {
               ))}
               <NavigationMenuItem>
                 <NavigationMenuTrigger
-                  className={cn(triggerClass, aboutActive && "bg-muted/50")}
+                  className={cn(
+                    triggerClass,
+                    aboutActive && "bg-primary-foreground/15",
+                  )}
                 >
                   About
                 </NavigationMenuTrigger>
@@ -91,13 +95,19 @@ export function SiteHeader() {
               </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>
-          <PlanVisitButton size="lg">Plan a visit</PlanVisitButton>
+          <PlanVisitButton size="lg" variant="secondary">
+            Plan a visit
+          </PlanVisitButton>
         </div>
 
         <Sheet>
           <SheetTrigger
             render={
-              <Button variant="ghost" size="icon" className="lg:hidden" />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground lg:hidden"
+              />
             }
           >
             <MenuIcon />
