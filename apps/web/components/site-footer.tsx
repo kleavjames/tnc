@@ -18,7 +18,7 @@ function FooterBrand() {
         height={44}
         className="size-20 object-contain"
       />
-      <div className="flex flex-col relative left-[-10px]">
+      <div className="flex flex-col relative -left-2.5">
         <span className="text-xs font-bold tracking-[0.14em] text-footer-foreground uppercase">
           True
         </span>
@@ -56,14 +56,22 @@ export function SiteFooter() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-8 sm:flex-row sm:items-center sm:justify-between lg:px-8">
         <FooterBrand />
         <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:gap-14">
-          <FooterInfo label="Sunday service">10:00 AM & 5:00 PM</FooterInfo>
+          <FooterInfo label="Sunday Service">
+            <div>
+              <span>10:00 AM & 5:00 PM</span>
+              <br />
+              <span>9:30 AM</span>
+              <br />
+              <span>9:30 AM</span>
+            </div>
+          </FooterInfo>
           <FooterInfo label="Address">
             <div>
-              <span>Door 6&7, Camfer Building</span>
+              <span>Davao City, Davao del Sur</span>
               <br />
-              <span>154 Bonifacio St, Poblacion District</span>
+              <span>Kapalong, Davao del Norte</span>
               <br />
-              <span>Davao City, 8000 Davao del Sur</span>
+              <span>Tagum, Davao del Norte</span>
             </div>
           </FooterInfo>
         </div>

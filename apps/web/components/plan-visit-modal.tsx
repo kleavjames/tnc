@@ -26,10 +26,33 @@ import {
 import { cn } from "@repo/ui/lib/utils";
 
 const LOGO_SRC = "/tnc-logo-v2-transparent.png";
-const CHURCH_ADDRESS =
-  "door 6&7, Camfer Building, 154 Bonifacio St, Poblacion District, Davao City, 8000 Davao del Sur";
-const CHURCH_MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(CHURCH_ADDRESS)}`;
-const CHURCH_MAPS_EMBED = `https://maps.google.com/maps?q=${encodeURIComponent(CHURCH_ADDRESS)}&z=15&output=embed`;
+
+const BRANCHES = [
+  {
+    id: "davao",
+    name: "Davao",
+    address:
+      "door 6&7, Camfer Building, 154 Bonifacio St, Poblacion District, Davao City, 8000 Davao del Sur",
+  },
+  {
+    id: "kapalong",
+    name: "Kapalong",
+    address: "JM65+5FJ, Kapalong, Davao del Norte",
+  },
+  {
+    id: "tagum",
+    name: "Tagum",
+    address: "FR33+76M, Magugpo West, Tagum, Davao del Norte",
+  },
+] as const;
+
+function getMapsUrl(address: string) {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+}
+
+function getMapsEmbedUrl(address: string) {
+  return `https://maps.google.com/maps?q=${encodeURIComponent(address)}&z=15&output=embed`;
+}
 
 type PlanVisitModalContextValue = {
   openPlanVisitModal: () => void;
@@ -51,6 +74,11 @@ function usePlanVisitModal() {
 
 export function PlanVisitModalProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
+  const [branchId, setBranchId] = useState<(typeof BRANCHES)[number]["id"]>(
+    BRANCHES[0].id,
+  );
+  const branch = BRANCHES.find((b) => b.id === branchId) ?? BRANCHES[0];
+  const mapsUrl = getMapsUrl(branch.address);
 
   const openPlanVisitModal = useCallback(() => {
     setOpen(true);
@@ -58,21 +86,21 @@ export function PlanVisitModalProvider({ children }: { children: ReactNode }) {
 
   const openDirectionsFromCurrentLocation = useCallback(() => {
     if (!navigator.geolocation) {
-      window.open(CHURCH_MAPS_URL, "_blank", "noopener,noreferrer");
+      window.open(mapsUrl, "_blank", "noopener,noreferrer");
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        const url = `https://www.google.com/maps/dir/?api=1&origin=${latitude},${longitude}&destination=${encodeURIComponent(CHURCH_ADDRESS)}`;
+        const url = `https://www.google.com/maps/dir/?api=1&origin=${latitude},${longitude}&destination=${encodeURIComponent(branch.address)}`;
         window.open(url, "_blank", "noopener,noreferrer");
       },
       () => {
-        window.open(CHURCH_MAPS_URL, "_blank", "noopener,noreferrer");
+        window.open(mapsUrl, "_blank", "noopener,noreferrer");
       },
     );
-  }, []);
+  }, [branch.address, mapsUrl]);
 
   return (
     <PlanVisitModalContext.Provider value={{ openPlanVisitModal }}>
@@ -97,7 +125,7 @@ export function PlanVisitModalProvider({ children }: { children: ReactNode }) {
                   Plan your visit
                 </ModalTitle>
                 <ModalDescription className="text-sm text-muted-foreground">
-                  Find us on Sunday — free meal after the service
+                  Find us at {branch.name} — free meal after the service
                 </ModalDescription>
               </div>
             </div>
@@ -115,10 +143,34 @@ export function PlanVisitModalProvider({ children }: { children: ReactNode }) {
             </ModalClose>
           </div>
 
+          <div
+            role="group"
+            aria-label="Branch"
+            className="flex items-center gap-3 border-b border-border px-5 py-3"
+          >
+            <span className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
+              Branch
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {BRANCHES.map((b) => (
+                <Button
+                  key={b.id}
+                  size="sm"
+                  variant={b.id === branchId ? "default" : "outline"}
+                  aria-pressed={b.id === branchId}
+                  className="rounded-full px-4 font-semibold"
+                  onClick={() => setBranchId(b.id)}
+                >
+                  {b.name}
+                </Button>
+              ))}
+            </div>
+          </div>
+
           <div className="relative aspect-[16/10] w-full bg-muted sm:aspect-[16/9]">
             <iframe
-              title="True North Church location"
-              src={CHURCH_MAPS_EMBED}
+              title={`True North Church ${branch.name} location`}
+              src={getMapsEmbedUrl(branch.address)}
               className="size-full border-0"
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
@@ -130,11 +182,7 @@ export function PlanVisitModalProvider({ children }: { children: ReactNode }) {
               nativeButton={false}
               className="absolute top-3 left-3 bg-card"
               render={
-                <a
-                  href={CHURCH_MAPS_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                />
+                <a href={mapsUrl} target="_blank" rel="noopener noreferrer" />
               }
             >
               <ExternalLinkIcon data-icon="inline-start" />
@@ -145,7 +193,7 @@ export function PlanVisitModalProvider({ children }: { children: ReactNode }) {
           <div className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="flex items-center gap-2 text-sm font-medium text-foreground max-w-md">
               <MapPinIcon className="size-4 shrink-0 text-primary" />
-              {CHURCH_ADDRESS}
+              {branch.address}
             </p>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               {/* <Button
@@ -154,7 +202,7 @@ export function PlanVisitModalProvider({ children }: { children: ReactNode }) {
                 nativeButton={false}
                 render={
                   <a
-                    href={CHURCH_MAPS_URL}
+                    href={mapsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                   />

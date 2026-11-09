@@ -10,7 +10,7 @@ export default function Home() {
 
       <div className="relative mx-auto flex w-full max-w-3xl flex-col items-center gap-8 px-6 py-16 text-center lg:px-8 lg:py-20">
         <p className="text-sm font-semibold tracking-[0.22em] text-primary uppercase">
-          Sundays | 10:00 AM & 5:00 PM
+          Sundays | 10:00 AM & 5:00 PM | 9:30 AM
         </p>
         <h1 className="text-5xl uppercase leading-none font-extrabold tracking-tight whitespace-nowrap sm:text-5xl lg:text-6xl">
           Always pointing to Christ
