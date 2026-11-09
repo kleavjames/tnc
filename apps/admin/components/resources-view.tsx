@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   LayoutGridIcon,
   ListIcon,
@@ -202,7 +203,11 @@ export function ResourcesView() {
             <SearchIcon />
           </InputGroupAddon>
         </InputGroup>
-        <Button size="lg">
+        <Button
+          size="lg"
+          nativeButton={false}
+          render={<Link href="/resources/new" />}
+        >
           <PlusIcon data-icon="inline-start" />
           New article
         </Button>

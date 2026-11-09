@@ -72,7 +72,9 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu className="px-1">
               {contentItems.map((item) => {
-                const isActive = pathname === item.href;
+                const isActive =
+                  pathname === item.href ||
+                  pathname.startsWith(`${item.href}/`);
 
                 return (
                   <SidebarMenuItem
@@ -105,7 +107,9 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu className="px-1">
               {churchItems.map((item) => {
-                const isActive = pathname === item.href;
+                const isActive =
+                  pathname === item.href ||
+                  pathname.startsWith(`${item.href}/`);
 
                 return (
                   <SidebarMenuItem
