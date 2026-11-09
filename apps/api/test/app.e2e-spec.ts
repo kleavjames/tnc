@@ -8,6 +8,11 @@ describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
+    process.env.R2_ACCESS_KEY_ID ??= 'test-access-key';
+    process.env.R2_SECRET_ACCESS_KEY ??= 'test-secret-key';
+    process.env.R2_BUCKET ??= 'test-bucket';
+    process.env.R2_S3_API ??= 'https://example.r2.cloudflarestorage.com';
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
