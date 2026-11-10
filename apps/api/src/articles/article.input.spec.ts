@@ -13,6 +13,7 @@ describe('parseArticleContent', () => {
         verse: 'Matthew 28:20',
         tags: ['hope', 1],
         type: 'sermon',
+        sermonDate: '2026-01-04',
         articleStatus: 'published',
         imageKey: '',
         fileKey: 'files/notes.pdf',
@@ -24,8 +25,33 @@ describe('parseArticleContent', () => {
       verse: 'Matthew 28:20',
       tags: ['hope'],
       type: 'sermon',
+      sermonDate: new Date('2026-01-04T00:00:00.000Z'),
       imageKey: null,
       fileKey: 'files/notes.pdf',
+    });
+  });
+
+  it('requires a real date for every article type', () => {
+    expect(() =>
+      parseArticleContent({ title: 'Notes', type: 'glc' }),
+    ).toThrow(BadRequestException);
+    expect(() =>
+      parseArticleContent({
+        title: 'Sunday',
+        type: 'lnl',
+        sermonDate: '2026-02-31',
+      }),
+    ).toThrow(BadRequestException);
+
+    expect(
+      parseArticleContent({
+        title: 'Notes',
+        type: 'glc',
+        sermonDate: '2026-01-04',
+      }),
+    ).toMatchObject({
+      type: 'glc',
+      sermonDate: new Date('2026-01-04T00:00:00.000Z'),
     });
   });
 

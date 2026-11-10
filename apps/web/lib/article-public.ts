@@ -7,6 +7,7 @@ export type PublishedArticleSummary = {
   verse: string;
   type: ArticleType;
   uploadedAt: string;
+  sermonDate: string | null;
   series: string | null;
   hasFile: boolean;
 };
@@ -51,6 +52,13 @@ export function formatMessageDate(iso: string): string {
   return messageDate.format(new Date(iso));
 }
 
+export function articleDate(article: {
+  sermonDate: string | null;
+  uploadedAt: string;
+}): string {
+  return article.sermonDate ?? article.uploadedAt;
+}
+
 export function articleLabel(article: PublishedArticleSummary): string {
   return article.series ?? ARTICLE_TYPE_LABELS[article.type];
 }
@@ -70,6 +78,7 @@ export function isPublishedSummary(
     typeof record.type === "string" &&
     ARTICLE_TYPES.has(record.type) &&
     typeof record.uploadedAt === "string" &&
+    (record.sermonDate === null || typeof record.sermonDate === "string") &&
     (record.series === null || typeof record.series === "string") &&
     typeof record.hasFile === "boolean"
   );

@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { HeadObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { StorageService } from './storage.service.js';
 import { r2ConfigFromEnv } from './storage.keys.js';
 
@@ -63,6 +63,24 @@ describe('StorageService', () => {
     await expect(service.createUpload('   ', 'text/plain')).rejects.toBeInstanceOf(
       BadRequestException,
     );
+  });
+
+  it('reads the size and type of an uploaded object', async () => {
+    const service = new StorageService();
+    const send = vi.spyOn(service['client'], 'send').mockResolvedValue({
+      ContentLength: 2048,
+      ContentType: 'application/pdf',
+    } as never);
+
+    await expect(service.describe('uploads/id/notes.pdf')).resolves.toEqual({
+      size: 2048,
+      contentType: 'application/pdf',
+    });
+    expect(send.mock.calls[0]?.[0]).toBeInstanceOf(HeadObjectCommand);
+    expect(send.mock.calls[0]?.[0].input).toMatchObject({
+      Bucket: 'test-bucket',
+      Key: 'uploads/id/notes.pdf',
+    });
   });
 
   it('rejects object keys outside uploads/', async () => {

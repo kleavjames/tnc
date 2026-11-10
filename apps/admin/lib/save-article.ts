@@ -5,6 +5,7 @@ export type ArticleContent = {
   verse: string;
   tags: string[];
   type: "glc" | "lnl" | "sermon";
+  sermonDate: string | null;
   imageKey: string | null;
   fileKey: string | null;
 };

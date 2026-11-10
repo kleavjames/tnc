@@ -8,6 +8,7 @@ import { Card } from "@repo/ui/components/card";
 import { Input } from "@repo/ui/components/input";
 import { cn } from "@repo/ui/lib/utils";
 import {
+  articleDate,
   articleLabel,
   formatCoverDate,
   formatMessageDate,
@@ -153,7 +154,7 @@ function SeriesPill({
 }
 
 function ResourceCard({ article }: { article: PublishedArticleSummary }) {
-  const meta = [article.verse, formatMessageDate(article.uploadedAt)]
+  const meta = [article.verse, formatMessageDate(articleDate(article))]
     .filter((item) => item.length > 0)
     .join(" · ");
 
@@ -161,7 +162,7 @@ function ResourceCard({ article }: { article: PublishedArticleSummary }) {
     <Card className="h-full gap-0 py-0">
       <div className="flex min-h-52 flex-col items-center justify-center gap-3 bg-muted px-6 py-10 text-center">
         <p className="text-xs font-semibold tracking-[0.16em] text-primary uppercase">
-          {formatCoverDate(article.uploadedAt)}
+          {formatCoverDate(articleDate(article))}
         </p>
         <p className="text-2xl leading-tight font-extrabold tracking-tight text-balance uppercase">
           {article.title}

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
@@ -103,6 +104,21 @@ export class StorageService {
       });
 
     return { objects };
+  }
+
+  async describe(key: string): Promise<{ size: number; contentType: string }> {
+    assertUploadKey(key);
+    const result = await this.client.send(
+      new HeadObjectCommand({
+        Bucket: this.config.bucket,
+        Key: key,
+      }),
+    );
+
+    return {
+      size: result.ContentLength ?? 0,
+      contentType: result.ContentType || 'application/octet-stream',
+    };
   }
 
   async download(key: string): Promise<SignedUrl> {

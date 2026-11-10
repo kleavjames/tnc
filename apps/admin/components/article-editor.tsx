@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import {
-  BookOpenIcon,
+  CalendarIcon,
   ChevronRightIcon,
   DownloadIcon,
   LinkIcon,
@@ -13,6 +13,7 @@ import {
   XIcon,
 } from "lucide-react";
 import { Button } from "@repo/ui/components/button";
+import { Calendar } from "@repo/ui/components/calendar";
 import {
   Card,
   CardContent,
@@ -21,6 +22,11 @@ import {
 } from "@repo/ui/components/card";
 import { Input } from "@repo/ui/components/input";
 import { Label } from "@repo/ui/components/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@repo/ui/components/popover";
 import {
   Select,
   SelectContent,
@@ -43,6 +49,7 @@ import {
 } from "../lib/save-article";
 import {
   deleteObject,
+  describeObject,
   downloadObject,
   presignDownload,
   uploadFile,
@@ -86,6 +93,7 @@ type ArticleDraft = {
   tags: string[];
   type: ArticleType | null;
   articleStatus: ArticleStatus | null;
+  sermonDate: string | null;
   imageKey: string | null;
   fileKey: string | null;
   fileName: string | null;
@@ -107,6 +115,7 @@ const initialDraft: ArticleDraft = {
   tags: [],
   type: null,
   articleStatus: null,
+  sermonDate: null,
   imageKey: null,
   fileKey: null,
   fileName: null,
@@ -125,6 +134,7 @@ export type EditorArticle = {
   tags: string[];
   type: ArticleType | null;
   articleStatus: ArticleStatus | null;
+  sermonDate: string | null;
   imageKey: string | null;
   fileKey: string | null;
   seriesId: string | null;
@@ -141,6 +151,7 @@ function draftFromArticle(article: EditorArticle): ArticleDraft {
     tags: article.tags,
     type: article.type,
     articleStatus: article.articleStatus,
+    sermonDate: article.sermonDate,
     imageKey: article.imageKey,
     fileKey: article.fileKey,
     seriesId: article.seriesId,
@@ -148,15 +159,27 @@ function draftFromArticle(article: EditorArticle): ArticleDraft {
 }
 
 function fileFromKey(key: string): ArticleFile {
+  const name = key.split("/").pop() || "File";
   return {
     id: key,
-    name: "File",
+    name,
     size: 0,
     loaded: 0,
-    contentType: "application/octet-stream",
+    contentType: contentTypeFromName(name),
     key,
     error: null,
   };
+}
+
+function contentTypeFromName(name: string): string {
+  const lower = name.toLowerCase();
+  if (lower.endsWith(".pdf")) {
+    return "application/pdf";
+  }
+  if (/\.(mp3|m4a|wav)$/.test(lower)) {
+    return "audio/mpeg";
+  }
+  return "application/octet-stream";
 }
 
 export function ArticleEditor({ article }: { article?: EditorArticle }) {
@@ -192,6 +215,40 @@ export function ArticleEditor({ article }: { article?: EditorArticle }) {
       localStorage.removeItem(STORAGE_KEY);
     }
   }, [article]);
+
+  useEffect(() => {
+    const key = article?.fileKey;
+    if (!key) {
+      return;
+    }
+    let cancel = false;
+    void describeObject(key)
+      .then((details) => {
+        if (cancel) {
+          return;
+        }
+        setArticleFile((current) => {
+          if (current?.key !== key) {
+            return current;
+          }
+          const contentType =
+            details.contentType &&
+            details.contentType !== "application/octet-stream"
+              ? details.contentType
+              : current.contentType;
+          return {
+            ...current,
+            size: details.size,
+            loaded: details.size,
+            contentType,
+          };
+        });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancel = true;
+    };
+  }, [article?.fileKey]);
 
   useEffect(() => {
     if (!draft.imageKey || coverPreview) {
@@ -244,6 +301,10 @@ export function ArticleEditor({ article }: { article?: EditorArticle }) {
       setSaveError("Choose a type.");
       return null;
     }
+    if (!current.sermonDate) {
+      setSaveError("Choose a sermon date.");
+      return null;
+    }
     return {
       title: current.title,
       subtitle: current.subtitle,
@@ -251,6 +312,7 @@ export function ArticleEditor({ article }: { article?: EditorArticle }) {
       verse: current.verse,
       tags: current.tags,
       type: current.type,
+      sermonDate: current.sermonDate,
       imageKey: current.imageKey,
       fileKey: fileRef.current?.key ?? current.fileKey,
     };
@@ -293,9 +355,6 @@ export function ArticleEditor({ article }: { article?: EditorArticle }) {
 
   function publish() {
     const current = draftRef.current;
-    if (current.articleStatus === "published") {
-      return;
-    }
     const content = articleContent(current);
     if (!content) {
       return;
@@ -325,6 +384,7 @@ export function ArticleEditor({ article }: { article?: EditorArticle }) {
     draft.verse,
     draft.tags,
     draft.type,
+    draft.sermonDate,
     draft.articleStatus,
     draft.imageKey,
     draft.fileKey,
@@ -578,15 +638,15 @@ export function ArticleEditor({ article }: { article?: EditorArticle }) {
             disabled={saving}
             onClick={() => void saveDraft()}
           >
-            Save as draft
+            {draft.articleStatus === "published" ? "Save" : "Save as draft"}
           </Button>
           <Button
             type="button"
             className="px-4 font-semibold tracking-wide uppercase"
-            disabled={saving || draft.articleStatus === "published"}
+            disabled={saving}
             onClick={() => void publish()}
           >
-            {draft.articleStatus === "published" ? "Published" : "Publish"}
+            {draft.articleStatus === "published" ? "Republish" : "Publish"}
           </Button>
           {draft.articleStatus === "published" ? (
             <Button
@@ -740,6 +800,13 @@ export function ArticleEditor({ article }: { article?: EditorArticle }) {
                   placeholder="Matthew 28:20"
                   onChange={(event) => update("verse", event.target.value)}
                   className={cn("h-10", fieldClass)}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label>Sermon date</Label>
+                <SermonDatePicker
+                  value={draft.sermonDate}
+                  onChange={(sermonDate) => update("sermonDate", sermonDate)}
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -1078,28 +1145,6 @@ function ArticleBody({
           >
             <LinkIcon />
           </ToolbarButton>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="ml-auto border-transparent bg-primary/10 font-semibold tracking-wide text-primary uppercase hover:bg-primary/15 hover:text-primary"
-            disabled={!editor}
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={() =>
-              run(() =>
-                editor
-                  ?.chain()
-                  .focus()
-                  .insertContent(
-                    "<blockquote><p>“Verse text”</p><p>Book 0:0</p></blockquote><p></p>",
-                  )
-                  .run(),
-              )
-            }
-          >
-            <BookOpenIcon data-icon="inline-start" />
-            Insert verse
-          </Button>
         </div>
       ) : null}
       <div className="px-3 py-2">
@@ -1244,6 +1289,69 @@ function formatBytes(size: number): string {
   }
   const mb = size / (1024 * 1024);
   return `${mb >= 10 ? Math.round(mb) : mb.toFixed(1)} MB`;
+}
+
+function SermonDatePicker({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (value: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = value ? sermonDateFromDay(value) : undefined;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        render={
+          <Button
+            type="button"
+            variant="outline"
+            data-empty={!value}
+            className={cn(
+              "h-10 w-full justify-start font-normal data-[empty=true]:text-muted-foreground",
+              fieldClass,
+            )}
+          />
+        }
+      >
+        <CalendarIcon data-icon="inline-start" />
+        {value ? formatSermonDate(value) : "Pick a date"}
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={selected}
+          onSelect={(date) => {
+            onChange(date ? sermonDayFromDate(date) : null);
+            setOpen(false);
+          }}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function sermonDateFromDay(value: string): Date {
+  const year = Number(value.slice(0, 4));
+  const month = Number(value.slice(5, 7));
+  const day = Number(value.slice(8, 10));
+  return new Date(year, month - 1, day);
+}
+
+function sermonDayFromDate(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+function formatSermonDate(value: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(sermonDateFromDay(value));
 }
 
 function isArticleType(value: unknown): value is ArticleType {

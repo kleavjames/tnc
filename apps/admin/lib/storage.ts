@@ -30,6 +30,14 @@ export async function uploadFile(
   return { key: ticket.key };
 }
 
+export function describeObject(
+  key: string,
+): Promise<{ size: number; contentType: string }> {
+  return requestJson(
+    `/storage/objects/details?key=${encodeURIComponent(key)}`,
+  );
+}
+
 export function listObjects(): Promise<{ objects: StoredObject[] }> {
   return requestJson("/storage/objects");
 }

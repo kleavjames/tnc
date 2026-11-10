@@ -68,6 +68,7 @@ model Article {
   body          String        @default("")
   verse         String
   uploadedAt    DateTime      @default(now())
+  sermonDate    DateTime?
   tags          String[]      @default([])
   type          ArticleType
   articleStatus ArticleStatus @default(draft)

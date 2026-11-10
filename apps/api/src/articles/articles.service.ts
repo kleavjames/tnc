@@ -10,6 +10,7 @@ type PublicArticleRow = {
   verse: string;
   type: 'glc' | 'lnl' | 'sermon';
   uploadedAt: Date;
+  sermonDate: Date | null;
   fileKey: string | null;
   series: { title: string } | null;
 };
@@ -67,6 +68,7 @@ export class ArticlesService {
         verse: true,
         type: true,
         uploadedAt: true,
+        sermonDate: true,
         fileKey: true,
         series: { select: { title: true } },
       },
@@ -88,6 +90,7 @@ export class ArticlesService {
         type: true,
         articleStatus: true,
         uploadedAt: true,
+        sermonDate: true,
         fileKey: true,
         series: { select: { title: true } },
       },
@@ -182,6 +185,7 @@ function publicSummary(article: PublicArticleRow) {
     verse: article.verse,
     type: article.type,
     uploadedAt: article.uploadedAt.toISOString(),
+    sermonDate: article.sermonDate?.toISOString() ?? null,
     series: article.series?.title ?? null,
     hasFile: Boolean(article.fileKey),
   };

@@ -20,6 +20,11 @@ export class StorageController {
     return this.storage.list();
   }
 
+  @Get('objects/details')
+  details(@Query('key') key?: string | string[]) {
+    return this.storage.describe(single(key));
+  }
+
   @Get('downloads')
   download(@Query('key') key?: string | string[]) {
     return this.storage.download(single(key));

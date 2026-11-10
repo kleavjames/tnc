@@ -11,6 +11,7 @@ export type ArticleContent = {
   verse: string;
   tags: string[];
   type: ArticleType;
+  sermonDate: Date;
   imageKey: string | null;
   fileKey: string | null;
 };
@@ -26,13 +27,16 @@ export function parseArticleContent(body: unknown): ArticleContent {
     throw new BadRequestException('Title is required');
   }
 
+  const type = oneOf(record.type, ARTICLE_TYPES, 'type');
+
   return {
     title,
     subtitle: text(record.subtitle),
     body: text(record.body),
     verse: text(record.verse),
     tags: tags(record.tags),
-    type: oneOf(record.type, ARTICLE_TYPES, 'type'),
+    type,
+    sermonDate: sermonDate(record.sermonDate),
     imageKey: optionalKey(record.imageKey),
     fileKey: optionalKey(record.fileKey),
   };
@@ -47,6 +51,24 @@ function tags(value: unknown): string[] {
     return [];
   }
   return value.filter((item): item is string => typeof item === 'string');
+}
+
+function sermonDate(value: unknown): Date {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new BadRequestException('sermonDate is required');
+  }
+  const year = Number(value.slice(0, 4));
+  const month = Number(value.slice(5, 7));
+  const day = Number(value.slice(8, 10));
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    throw new BadRequestException('sermonDate is invalid');
+  }
+  return date;
 }
 
 function optionalKey(value: unknown): string | null {

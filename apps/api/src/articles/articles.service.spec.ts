@@ -11,6 +11,7 @@ const published = {
   type: 'sermon' as const,
   articleStatus: 'published' as const,
   uploadedAt: new Date('2025-12-14T00:00:00.000Z'),
+  sermonDate: new Date('2025-12-07T00:00:00.000Z'),
   imageKey: 'uploads/cover.jpg',
   fileKey: 'uploads/id/notes.pdf',
   series: { title: 'Emmanuel' },
@@ -49,6 +50,7 @@ describe('published articles', () => {
       verse: 'Luke 2:1-7',
       type: 'sermon',
       uploadedAt: '2025-12-14T00:00:00.000Z',
+      sermonDate: '2025-12-07T00:00:00.000Z',
       series: 'Emmanuel',
       hasFile: true,
     });

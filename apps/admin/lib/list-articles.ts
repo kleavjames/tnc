@@ -26,6 +26,7 @@ export type ArticleRecord = {
   tags: string[];
   type: ArticleType;
   articleStatus: ArticleStatus;
+  sermonDate: string | null;
   imageKey: string | null;
   fileKey: string | null;
   seriesId: string | null;
@@ -109,6 +110,7 @@ function parseArticleRecord(value: unknown): ArticleRecord {
       : [],
     type: record.type,
     articleStatus: record.articleStatus,
+    sermonDate: sermonDay(record.sermonDate),
     imageKey: typeof record.imageKey === "string" ? record.imageKey : null,
     fileKey: typeof record.fileKey === "string" ? record.fileKey : null,
     seriesId: typeof record.seriesId === "string" ? record.seriesId : null,
@@ -140,6 +142,14 @@ function parseArticle(value: unknown): Article | null {
     articleStatus: record.articleStatus,
     uploadedAt: record.uploadedAt,
   };
+}
+
+function sermonDay(value: unknown): string | null {
+  if (typeof value !== "string" || value.length < 10) {
+    return null;
+  }
+  const day = value.slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : null;
 }
 
 function isArticleType(value: unknown): value is ArticleType {
