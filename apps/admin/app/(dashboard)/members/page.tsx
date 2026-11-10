@@ -2,15 +2,15 @@ import type { Metadata } from "next";
 import { PlaceholderPage } from "../../../components/placeholder-page";
 
 export const metadata: Metadata = {
-  title: "Speakers",
+  title: "Members",
 };
 
-export default function SpeakersPage() {
+export default function MembersPage() {
   return (
     <PlaceholderPage
       eyebrow="Content"
-      title="Speakers"
-      description="Keep a directory of pastors and guest speakers connected to each sermon."
+      title="Members"
+      description="Manage the members of the church."
     />
   );
 }

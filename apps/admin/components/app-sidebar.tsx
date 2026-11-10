@@ -46,8 +46,8 @@ const sidebarProfileButtonClassName =
 const contentItems = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboardIcon },
   { title: "Resources", href: "/resources", icon: FileTextIcon },
-  { title: "Series", href: "/series", icon: LayersIcon },
-  { title: "Speakers", href: "/speakers", icon: UserIcon },
+  { title: "Contents", href: "/contents", icon: LayersIcon },
+  { title: "Members", href: "/members", icon: UserIcon },
   { title: "Media library", href: "/media", icon: FolderIcon },
 ] as const;
 
