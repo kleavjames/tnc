@@ -29,12 +29,14 @@ type NavItem = {
   label: string;
 };
 
-const navItems: NavItem[] = [
-  // { href: "/", label: "Home" },
-  // { href: "/sermons", label: "Sermons" },
-  // { href: "/about", label: "About" },
-  // { href: "/events", label: "Events" },
-];
+const navItems: NavItem[] = [{ href: "/resources", label: "Resources" }];
+
+function itemActive(pathname: string, href: string) {
+  if (href === "/resources") {
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
+  return pathname === href;
+}
 
 const aboutItems: NavItem[] = [
   { href: "/about/who-we-are", label: "Who We Are" },
@@ -56,18 +58,7 @@ export function SiteHeader() {
 
         <div className="hidden items-center gap-4 lg:flex">
           <NavigationMenu aria-label="Primary">
-            <NavigationMenuList>
-              {navItems.map((item) => (
-                <NavigationMenuItem key={item.href}>
-                  <NavigationMenuLink
-                    render={<Link href={item.href} />}
-                    active={pathname === item.href}
-                    className={cn(navigationMenuTriggerStyle(), triggerClass)}
-                  >
-                    {item.label}
-                  </NavigationMenuLink>
-                </NavigationMenuItem>
-              ))}
+            <NavigationMenuList className="gap-4">
               <NavigationMenuItem>
                 <NavigationMenuTrigger
                   className={cn(
@@ -93,6 +84,17 @@ export function SiteHeader() {
                   </ul>
                 </NavigationMenuContent>
               </NavigationMenuItem>
+              {navItems.map((item) => (
+                <NavigationMenuItem key={item.href}>
+                  <NavigationMenuLink
+                    render={<Link href={item.href} />}
+                    active={itemActive(pathname, item.href)}
+                    className={cn(navigationMenuTriggerStyle(), triggerClass)}
+                  >
+                    {item.label}
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+              ))}
             </NavigationMenuList>
           </NavigationMenu>
           <PlanVisitButton size="lg" variant="secondary">
@@ -119,7 +121,7 @@ export function SiteHeader() {
             </SheetHeader>
             <nav className="flex flex-col gap-4 px-4" aria-label="Mobile">
               {navItems.map((item) => {
-                const active = pathname === item.href;
+                const active = itemActive(pathname, item.href);
 
                 return (
                   <Link
