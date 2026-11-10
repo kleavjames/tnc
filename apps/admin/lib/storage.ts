@@ -20,7 +20,7 @@ export async function uploadFile(
   },
 ): Promise<{ key: string }> {
   const contentType = file.type || "application/octet-stream";
-  const ticket = await requestJson<SignedUpload>("/storage/uploads", {
+  const ticket = await requestJson<SignedUpload>("/api/storage/uploads", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ filename: file.name, contentType }),
@@ -99,7 +99,8 @@ function putFile(
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${apiUrl}${path}`, init);
+  const url = path.startsWith("/api/") ? path : `${apiUrl}${path}`;
+  const response = await fetch(url, init);
   if (!response.ok) {
     let detail = `Storage request failed (${response.status})`;
     try {

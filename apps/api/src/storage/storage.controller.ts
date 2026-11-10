@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { AuthGuard } from '../auth/auth.guard.js';
 import { StorageService } from './storage.service.js';
 
 @Controller('storage')
@@ -6,6 +15,7 @@ export class StorageController {
   constructor(private readonly storage: StorageService) {}
 
   @Post('uploads')
+  @UseGuards(AuthGuard)
   createUpload(
     @Body() body: { filename?: unknown; contentType?: unknown } | undefined,
   ) {
