@@ -138,7 +138,7 @@ export function AppSidebar() {
 
       <SidebarFooter>
         <SidebarMenu className="px-1">
-          <SidebarMenuItem className={sidebarNavItemClassName(false)}>
+          {/* <SidebarMenuItem className={sidebarNavItemClassName(false)}>
             <SidebarMenuButton className={sidebarProfileButtonClassName}>
               <Avatar className="shrink-0">
                 <AvatarFallback>MS</AvatarFallback>
@@ -152,7 +152,7 @@ export function AppSidebar() {
                 </span>
               </div>
             </SidebarMenuButton>
-          </SidebarMenuItem>
+          </SidebarMenuItem> */}
           <SidebarMenuItem className={sidebarNavItemClassName(false)}>
             <SidebarMenuButton
               tooltip="Log out"
