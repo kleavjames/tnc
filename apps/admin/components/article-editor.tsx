@@ -654,10 +654,10 @@ export function ArticleEditor({
           <Button
             type="button"
             className="px-4 font-semibold tracking-wide uppercase"
-            disabled={saving}
+            disabled={saving || draft.articleStatus === "published"}
             onClick={() => void publish()}
           >
-            {draft.articleStatus === "published" ? "Republish" : "Publish"}
+            Publish
           </Button>
           {draft.articleStatus === "published" ? (
             <Button
