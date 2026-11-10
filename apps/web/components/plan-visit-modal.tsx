@@ -167,7 +167,7 @@ export function PlanVisitModalProvider({ children }: { children: ReactNode }) {
             </div>
           </div>
 
-          <div className="relative aspect-[16/10] w-full bg-muted sm:aspect-[16/9]">
+          <div className="relative aspect-16/10 w-full bg-muted sm:aspect-video">
             <iframe
               title={`True North Church ${branch.name} location`}
               src={getMapsEmbedUrl(branch.address)}
