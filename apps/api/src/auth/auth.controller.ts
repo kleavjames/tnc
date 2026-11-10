@@ -7,7 +7,7 @@ import {
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
-import { AuthGuard, type AuthedRequest } from './auth.guard.js';
+import { AuthGuard, bearerToken, type AuthedRequest } from './auth.guard.js';
 import { AuthService } from './auth.service.js';
 
 @Controller('auth')
@@ -19,6 +19,12 @@ export class AuthController {
     const username = typeof body?.username === 'string' ? body.username.trim() : '';
     const password = typeof body?.password === 'string' ? body.password : '';
     return this.auth.login(username, password);
+  }
+
+  @Post('logout')
+  @UseGuards(AuthGuard)
+  logout(@Req() request: AuthedRequest) {
+    return this.auth.logout(bearerToken(request.headers.authorization));
   }
 
   @Get('session')

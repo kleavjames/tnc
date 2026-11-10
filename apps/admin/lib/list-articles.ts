@@ -29,6 +29,8 @@ export type ArticleRecord = {
   sermonDate: string | null;
   imageKey: string | null;
   fileKey: string | null;
+  videoLink: string | null;
+  audioLink: string | null;
   seriesId: string | null;
 };
 
@@ -113,6 +115,8 @@ function parseArticleRecord(value: unknown): ArticleRecord {
     sermonDate: sermonDay(record.sermonDate),
     imageKey: typeof record.imageKey === "string" ? record.imageKey : null,
     fileKey: typeof record.fileKey === "string" ? record.fileKey : null,
+    videoLink: typeof record.videoLink === "string" ? record.videoLink : null,
+    audioLink: typeof record.audioLink === "string" ? record.audioLink : null,
     seriesId: typeof record.seriesId === "string" ? record.seriesId : null,
   };
 }

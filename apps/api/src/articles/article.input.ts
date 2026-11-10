@@ -14,6 +14,8 @@ export type ArticleContent = {
   sermonDate: Date;
   imageKey: string | null;
   fileKey: string | null;
+  videoLink: string | null;
+  audioLink: string | null;
 };
 
 export function parseArticleContent(body: unknown): ArticleContent {
@@ -39,6 +41,8 @@ export function parseArticleContent(body: unknown): ArticleContent {
     sermonDate: sermonDate(record.sermonDate),
     imageKey: optionalKey(record.imageKey),
     fileKey: optionalKey(record.fileKey),
+    videoLink: optionalUrl(record.videoLink, 'videoLink'),
+    audioLink: optionalUrl(record.audioLink, 'audioLink'),
   };
 }
 
@@ -73,6 +77,29 @@ function sermonDate(value: unknown): Date {
 
 function optionalKey(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
+function optionalUrl(value: unknown, field: string): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const url = value.trim();
+  if (!url) {
+    return null;
+  }
+  if (!isHttpUrl(url)) {
+    throw new BadRequestException(`${field} must be an http or https URL`);
+  }
+  return url;
+}
+
+function isHttpUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
 }
 
 function oneOf<T extends string>(

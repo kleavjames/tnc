@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeftIcon, DownloadIcon } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  DownloadIcon,
+  HeadphonesIcon,
+  PlayIcon,
+} from "lucide-react";
 import { buttonVariants } from "@repo/ui/components/button";
 import { cn } from "@repo/ui/lib/utils";
 import {
@@ -9,6 +14,7 @@ import {
   articleLabel,
   formatMessageDate,
 } from "@/lib/article-public";
+import { isPublicHttpUrl } from "@/lib/public-content";
 import { getPublishedArticle } from "@/lib/published-articles";
 
 export async function generateMetadata({
@@ -36,6 +42,13 @@ export default async function ResourcePage({
     .filter((item) => item.length > 0)
     .join(" · ");
   const body = article.body.trim();
+  const videoLink = isPublicHttpUrl(article.videoLink ?? "")
+    ? article.videoLink
+    : null;
+  const audioLink = isPublicHttpUrl(article.audioLink ?? "")
+    ? article.audioLink
+    : null;
+  const showAside = article.hasFile || Boolean(videoLink || audioLink);
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-12 lg:px-8 lg:py-16">
@@ -65,27 +78,68 @@ export default async function ResourcePage({
       <div
         className={cn(
           "grid items-start gap-8",
-          article.hasFile && "lg:grid-cols-[16rem_minmax(0,1fr)]",
+          showAside && "lg:grid-cols-[16rem_minmax(0,1fr)]",
         )}
       >
-        {article.hasFile ? (
-          <aside className="flex flex-col gap-3 lg:sticky lg:top-6 lg:self-start">
-            <h2 className="text-sm font-semibold tracking-[0.18em] text-primary uppercase">
-              Download
-            </h2>
-            {article.fileName ? (
-              <p className="text-sm text-muted-foreground">{article.fileName}</p>
+        {showAside ? (
+          <aside className="flex flex-col gap-6 lg:sticky lg:top-6 lg:self-start">
+            {article.hasFile ? (
+              <div className="flex flex-col gap-3">
+                <h2 className="text-sm font-semibold tracking-[0.18em] text-primary uppercase">
+                  Download
+                </h2>
+                {article.fileName ? (
+                  <p className="text-sm text-muted-foreground">
+                    {article.fileName}
+                  </p>
+                ) : null}
+                <a
+                  href={`/resources/${article.id}/file`}
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "lg" }),
+                    "self-start",
+                  )}
+                >
+                  <DownloadIcon data-icon="inline-start" />
+                  Download
+                </a>
+              </div>
             ) : null}
-            <a
-              href={`/resources/${article.id}/file`}
-              className={cn(
-                buttonVariants({ variant: "outline", size: "lg" }),
-                "self-start",
-              )}
-            >
-              <DownloadIcon data-icon="inline-start" />
-              Download
-            </a>
+            {videoLink || audioLink ? (
+              <div className="flex flex-col gap-3">
+                <h2 className="text-sm font-semibold tracking-[0.18em] text-primary uppercase">
+                  Watch & listen
+                </h2>
+                {videoLink ? (
+                  <a
+                    href={videoLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                      buttonVariants({ variant: "outline", size: "lg" }),
+                      "self-start",
+                    )}
+                  >
+                    <PlayIcon data-icon="inline-start" />
+                    Watch
+                  </a>
+                ) : null}
+                {audioLink ? (
+                  <a
+                    href={audioLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                      buttonVariants({ variant: "outline", size: "lg" }),
+                      "self-start",
+                    )}
+                  >
+                    <HeadphonesIcon data-icon="inline-start" />
+                    Listen
+                  </a>
+                ) : null}
+              </div>
+            ) : null}
           </aside>
         ) : null}
 

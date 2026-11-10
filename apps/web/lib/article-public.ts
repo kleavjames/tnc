@@ -16,6 +16,8 @@ export type PublishedArticle = PublishedArticleSummary & {
   body: string;
   tags: string[];
   fileName: string | null;
+  videoLink: string | null;
+  audioLink: string | null;
 };
 
 export const ARTICLE_TYPE_LABELS: Record<ArticleType, string> = {
@@ -93,7 +95,9 @@ export function isPublishedArticle(value: unknown): value is PublishedArticle {
     typeof record.body === "string" &&
     Array.isArray(record.tags) &&
     record.tags.every((tag) => typeof tag === "string") &&
-    (record.fileName === null || typeof record.fileName === "string")
+    (record.fileName === null || typeof record.fileName === "string") &&
+    (record.videoLink === null || typeof record.videoLink === "string") &&
+    (record.audioLink === null || typeof record.audioLink === "string")
   );
 }
 

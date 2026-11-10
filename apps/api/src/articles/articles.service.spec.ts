@@ -14,6 +14,8 @@ const published = {
   sermonDate: new Date('2025-12-07T00:00:00.000Z'),
   imageKey: 'uploads/cover.jpg',
   fileKey: 'uploads/id/notes.pdf',
+  videoLink: 'https://youtube.com/live/tn-dec28',
+  audioLink: 'https://open.spotify.com/episode/tn',
   series: { title: 'Emmanuel' },
 };
 
@@ -74,6 +76,8 @@ describe('published articles', () => {
       fileName: 'notes.pdf',
       hasFile: true,
       series: 'Emmanuel',
+      videoLink: 'https://youtube.com/live/tn-dec28',
+      audioLink: 'https://open.spotify.com/episode/tn',
     });
     expect(result).not.toHaveProperty('fileKey');
     expect(result).not.toHaveProperty('imageKey');

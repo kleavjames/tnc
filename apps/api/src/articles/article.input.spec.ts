@@ -28,7 +28,33 @@ describe('parseArticleContent', () => {
       sermonDate: new Date('2026-01-04T00:00:00.000Z'),
       imageKey: null,
       fileKey: 'files/notes.pdf',
+      videoLink: null,
+      audioLink: null,
     });
+  });
+
+  it('keeps http(s) media links and clears blanks', () => {
+    expect(
+      parseArticleContent({
+        title: 'Sunday',
+        type: 'sermon',
+        sermonDate: '2026-01-04',
+        videoLink: '  https://youtube.com/live/tn-dec28  ',
+        audioLink: '',
+      }),
+    ).toMatchObject({
+      videoLink: 'https://youtube.com/live/tn-dec28',
+      audioLink: null,
+    });
+
+    expect(() =>
+      parseArticleContent({
+        title: 'Sunday',
+        type: 'sermon',
+        sermonDate: '2026-01-04',
+        videoLink: 'youtube.com/live/tn-dec28',
+      }),
+    ).toThrow(BadRequestException);
   });
 
   it('requires a real date for every article type', () => {

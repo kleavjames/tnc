@@ -2,8 +2,16 @@ import { PlayIcon } from "lucide-react";
 import { Button } from "@repo/ui/components/button";
 import { TrueNorthMark } from "../components/logo";
 import { PlanVisitButton } from "../components/plan-visit-modal";
+import {
+  getPublicContent,
+  isPublicHttpUrl,
+} from "@/lib/public-content";
 
-export default function Home() {
+export default async function Home() {
+  const content = await getPublicContent();
+  const latestSermonUrl = isPublicHttpUrl(content.latestSermon)
+    ? content.latestSermon
+    : null;
   return (
     <main className="relative flex flex-1 items-center justify-center overflow-hidden">
       <TrueNorthMark className="pointer-events-none absolute top-1/2 left-1/2 size-[28rem] -translate-x-1/2 -translate-y-1/2 opacity-[0.08]" />
@@ -21,15 +29,28 @@ export default function Home() {
         </p>
         <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
           <PlanVisitButton size="xl">Plan a visit</PlanVisitButton>
-          <Button
-            size="xl"
-            variant="outline"
-            nativeButton={false}
-            // render={<Link href="/sermons" />}
-          >
-            <PlayIcon data-icon="inline-start" />
-            Watch latest sermon
-          </Button>
+          {latestSermonUrl ? (
+            <Button
+              size="xl"
+              variant="outline"
+              nativeButton={false}
+              render={
+                <a
+                  href={latestSermonUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                />
+              }
+            >
+              <PlayIcon data-icon="inline-start" />
+              Watch latest sermon
+            </Button>
+          ) : (
+            <Button size="xl" variant="outline" disabled>
+              <PlayIcon data-icon="inline-start" />
+              Watch latest sermon
+            </Button>
+          )}
         </div>
       </div>
     </main>

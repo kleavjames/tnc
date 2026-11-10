@@ -8,6 +8,8 @@ export type ArticleContent = {
   sermonDate: string | null;
   imageKey: string | null;
   fileKey: string | null;
+  videoLink: string | null;
+  audioLink: string | null;
 };
 
 export type SavedArticle = {

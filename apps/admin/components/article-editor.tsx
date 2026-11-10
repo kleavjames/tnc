@@ -17,6 +17,7 @@ import { Calendar } from "@repo/ui/components/calendar";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@repo/ui/components/card";
@@ -96,6 +97,8 @@ type ArticleDraft = {
   sermonDate: string | null;
   imageKey: string | null;
   fileKey: string | null;
+  videoLink: string;
+  audioLink: string;
   fileName: string | null;
   fileSize: number;
   fileContentType: string | null;
@@ -118,6 +121,8 @@ const initialDraft: ArticleDraft = {
   sermonDate: null,
   imageKey: null,
   fileKey: null,
+  videoLink: "",
+  audioLink: "",
   fileName: null,
   fileSize: 0,
   fileContentType: null,
@@ -137,6 +142,8 @@ export type EditorArticle = {
   sermonDate: string | null;
   imageKey: string | null;
   fileKey: string | null;
+  videoLink: string | null;
+  audioLink: string | null;
   seriesId: string | null;
 };
 
@@ -154,6 +161,8 @@ function draftFromArticle(article: EditorArticle): ArticleDraft {
     sermonDate: article.sermonDate,
     imageKey: article.imageKey,
     fileKey: article.fileKey,
+    videoLink: article.videoLink ?? "",
+    audioLink: article.audioLink ?? "",
     seriesId: article.seriesId,
   };
 }
@@ -315,10 +324,14 @@ export function ArticleEditor({ article }: { article?: EditorArticle }) {
       sermonDate: current.sermonDate,
       imageKey: current.imageKey,
       fileKey: fileRef.current?.key ?? current.fileKey,
+      videoLink: current.videoLink.trim() || null,
+      audioLink: current.audioLink.trim() || null,
     };
   }
 
-  async function runSave(action: () => Promise<{ id: string; articleStatus: ArticleStatus }>) {
+  async function runSave(
+    action: () => Promise<{ id: string; articleStatus: ArticleStatus }>,
+  ) {
     if (savingRef.current) {
       return;
     }
@@ -388,6 +401,8 @@ export function ArticleEditor({ article }: { article?: EditorArticle }) {
     draft.articleStatus,
     draft.imageKey,
     draft.fileKey,
+    draft.videoLink,
+    draft.audioLink,
     draft.seriesId,
   ]);
 
@@ -663,38 +678,79 @@ export function ArticleEditor({ article }: { article?: EditorArticle }) {
       </header>
 
       <div className="grid items-start gap-5 px-4 pb-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <Card className="rounded-md bg-(--editor-bg)">
-          <CardContent className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="article-title">Title</Label>
-              <input
-                id="article-title"
-                value={draft.title}
-                onChange={(event) => update("title", event.target.value)}
-                placeholder="Article title"
-                className="w-full rounded-md border border-input bg-white px-3 py-2 text-2xl font-bold tracking-tight outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-3xl"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="article-subtitle">Subtitle</Label>
-              <input
-                id="article-subtitle"
-                value={draft.subtitle}
-                onChange={(event) => update("subtitle", event.target.value)}
-                placeholder="Short line under the title"
-                className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label>Body</Label>
-              <ArticleBody
-                initialHtml={article?.body || EMPTY_BODY}
-                editable
-                onChange={onBodyChange}
-              />
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex min-w-0 flex-col gap-5">
+          <Card className="rounded-md bg-(--editor-bg)">
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="article-title">Title</Label>
+                <input
+                  id="article-title"
+                  value={draft.title}
+                  onChange={(event) => update("title", event.target.value)}
+                  placeholder="Article title"
+                  className="w-full rounded-md border border-input bg-white px-3 py-2 text-2xl font-bold tracking-tight outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-3xl"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="article-subtitle">Subtitle</Label>
+                <input
+                  id="article-subtitle"
+                  value={draft.subtitle}
+                  onChange={(event) => update("subtitle", event.target.value)}
+                  placeholder="Short line under the title"
+                  className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label>Body</Label>
+                <ArticleBody
+                  initialHtml={article?.body || EMPTY_BODY}
+                  editable
+                  onChange={onBodyChange}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-md bg-(--editor-bg)">
+            <CardHeader>
+              <CardTitle className="text-base font-semibold">
+                Watch & listen
+              </CardTitle>
+              <CardDescription>
+                Embed the service recording so members can stream it on the
+                sermon page.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="article-video-link">Video link</Label>
+                <Input
+                  id="article-video-link"
+                  value={draft.videoLink}
+                  placeholder="https://youtube.com/live/tn-dec28"
+                  onChange={(event) => update("videoLink", event.target.value)}
+                  className={cn("h-10", fieldClass)}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="article-audio-link">
+                  Podcast / audio link{" "}
+                  <span className="font-normal text-muted-foreground">
+                    optional
+                  </span>
+                </Label>
+                <Input
+                  id="article-audio-link"
+                  value={draft.audioLink}
+                  placeholder="Spotify or Apple Podcasts URL"
+                  onChange={(event) => update("audioLink", event.target.value)}
+                  className={cn("h-10", fieldClass)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         <aside className="flex flex-col gap-5">
           <Card className="rounded-md bg-(--editor-bg)">
@@ -716,37 +772,37 @@ export function ArticleEditor({ article }: { article?: EditorArticle }) {
                 )}
               </div>
               <div className="flex gap-2">
-                  <input
-                    ref={coverInputRef}
-                    type="file"
-                    accept="image/*"
-                    aria-label="Cover image"
-                    className="sr-only"
-                    onChange={(event) => {
-                      void onCoverFile(event.target.files?.[0]);
-                      event.target.value = "";
-                    }}
-                  />
+                <input
+                  ref={coverInputRef}
+                  type="file"
+                  accept="image/*"
+                  aria-label="Cover image"
+                  className="sr-only"
+                  onChange={(event) => {
+                    void onCoverFile(event.target.files?.[0]);
+                    event.target.value = "";
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  disabled={coverUploading}
+                  onClick={() => coverInputRef.current?.click()}
+                >
+                  {draft.imageKey ? "Replace image" : "Upload image"}
+                </Button>
+                {draft.imageKey ? (
                   <Button
                     type="button"
                     variant="outline"
-                    className="flex-1"
                     disabled={coverUploading}
-                    onClick={() => coverInputRef.current?.click()}
+                    onClick={() => void removeCover()}
                   >
-                    {draft.imageKey ? "Replace image" : "Upload image"}
+                    Remove
                   </Button>
-                  {draft.imageKey ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={coverUploading}
-                      onClick={() => void removeCover()}
-                    >
-                      Remove
-                    </Button>
-                  ) : null}
-                </div>
+                ) : null}
+              </div>
               <p className="text-xs text-muted-foreground">
                 {coverUploading
                   ? "Uploading cover photo..."
@@ -776,9 +832,7 @@ export function ArticleEditor({ article }: { article?: EditorArticle }) {
                     }
                   }}
                 >
-                  <SelectTrigger
-                    className={cn("h-10 w-full", fieldClass)}
-                  >
+                  <SelectTrigger className={cn("h-10 w-full", fieldClass)}>
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -835,16 +889,16 @@ export function ArticleEditor({ article }: { article?: EditorArticle }) {
                   ))}
                   <input
                     id="article-tag"
-                      value={tagDraft}
-                      onChange={(event) => setTagDraft(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          addTag();
-                        }
-                      }}
-                      onBlur={addTag}
-                      placeholder="Add a tag"
+                    value={tagDraft}
+                    onChange={(event) => setTagDraft(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        addTag();
+                      }
+                    }}
+                    onBlur={addTag}
+                    placeholder="Add a tag"
                     className="h-6 min-w-16 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                   />
                 </div>
@@ -861,9 +915,7 @@ export function ArticleEditor({ article }: { article?: EditorArticle }) {
                     update("seriesId", value);
                   }}
                 >
-                  <SelectTrigger
-                    className={cn("h-10 w-full", fieldClass)}
-                  >
+                  <SelectTrigger className={cn("h-10 w-full", fieldClass)}>
                     <SelectValue placeholder="Select series" />
                   </SelectTrigger>
                   <SelectContent>
@@ -888,9 +940,7 @@ export function ArticleEditor({ article }: { article?: EditorArticle }) {
                     }
                   }}
                 >
-                  <SelectTrigger
-                    className={cn("h-10 w-full", fieldClass)}
-                  >
+                  <SelectTrigger className={cn("h-10 w-full", fieldClass)}>
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -920,41 +970,41 @@ export function ArticleEditor({ article }: { article?: EditorArticle }) {
                 />
               ) : null}
               <label
-                  className={cn(
-                    "flex cursor-pointer flex-col items-center gap-1 rounded-md border border-dashed px-4 py-6 text-center",
-                    dragging
-                      ? "border-primary bg-muted/60"
-                      : "border-input bg-muted/40",
-                  )}
-                  onDragOver={(event) => {
-                    event.preventDefault();
-                    setDragging(true);
+                className={cn(
+                  "flex cursor-pointer flex-col items-center gap-1 rounded-md border border-dashed px-4 py-6 text-center",
+                  dragging
+                    ? "border-primary bg-muted/60"
+                    : "border-input bg-muted/40",
+                )}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  setDragging(true);
+                }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  setDragging(false);
+                  void onArticleFile(event.dataTransfer.files[0]);
+                }}
+              >
+                <UploadIcon className="size-4 text-primary" />
+                <span className="text-sm font-medium">
+                  {articleFile ? "Replace file or " : "Drop a file or "}
+                  <span className="text-primary underline">browse</span>
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  Notes, slides, audio, or a study guide · up to 200 MB
+                </span>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="sr-only"
+                  onChange={(event) => {
+                    void onArticleFile(event.target.files?.[0]);
+                    event.target.value = "";
                   }}
-                  onDragLeave={() => setDragging(false)}
-                  onDrop={(event) => {
-                    event.preventDefault();
-                    setDragging(false);
-                    void onArticleFile(event.dataTransfer.files[0]);
-                  }}
-                >
-                  <UploadIcon className="size-4 text-primary" />
-                  <span className="text-sm font-medium">
-                    {articleFile ? "Replace file or " : "Drop a file or "}
-                    <span className="text-primary underline">browse</span>
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    Notes, slides, audio, or a study guide · up to 200 MB
-                  </span>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    className="sr-only"
-                    onChange={(event) => {
-                      void onArticleFile(event.target.files?.[0]);
-                      event.target.value = "";
-                    }}
-                  />
-                </label>
+                />
+              </label>
               {fileError ? (
                 <p className="text-sm text-destructive" role="alert">
                   {fileError}

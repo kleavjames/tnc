@@ -74,4 +74,14 @@ export class AuthService {
       expiresAt: session.expiresAt,
     };
   }
+
+  async logout(token: string): Promise<{ loggedOut: true }> {
+    if (!token) {
+      return { loggedOut: true };
+    }
+    await this.prisma.session.deleteMany({
+      where: { tokenHash: hashToken(token) },
+    });
+    return { loggedOut: true };
+  }
 }

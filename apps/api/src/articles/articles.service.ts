@@ -92,6 +92,8 @@ export class ArticlesService {
         uploadedAt: true,
         sermonDate: true,
         fileKey: true,
+        videoLink: true,
+        audioLink: true,
         series: { select: { title: true } },
       },
     });
@@ -104,6 +106,8 @@ export class ArticlesService {
       body: article.body,
       tags: article.tags,
       fileName: fileName(article.fileKey),
+      videoLink: article.videoLink,
+      audioLink: article.audioLink,
     };
   }
 

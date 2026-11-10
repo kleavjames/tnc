@@ -74,6 +74,8 @@ model Article {
   articleStatus ArticleStatus @default(draft)
   imageKey      String?
   fileKey       String?
+  videoLink     String?
+  audioLink     String?
   seriesId      String?
   series        Series?       @relation(fields: [seriesId], references: [id], onDelete: SetNull)
   createdAt     DateTime      @default(now())
@@ -82,4 +84,13 @@ model Article {
   @@index([type])
   @@index([uploadedAt])
   @@map("articles")
+}
+
+/// Site-wide editable copy shown on the public website.
+model Content {
+  id           String   @id @default("site")
+  latestSermon String   @default("")
+  updatedAt    DateTime @updatedAt
+
+  @@map("content")
 }

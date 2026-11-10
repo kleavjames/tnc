@@ -7,6 +7,7 @@ import {
   FolderIcon,
   LayoutDashboardIcon,
   LayersIcon,
+  LogOutIcon,
   SparklesIcon,
   UserIcon,
 } from "lucide-react";
@@ -150,6 +151,16 @@ export function AppSidebar() {
                   Media team
                 </span>
               </div>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem className={sidebarNavItemClassName(false)}>
+            <SidebarMenuButton
+              tooltip="Log out"
+              render={<Link href="/api/auth/logout" />}
+              className={sidebarNavButtonClassName}
+            >
+              <LogOutIcon />
+              <span>Log out</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
