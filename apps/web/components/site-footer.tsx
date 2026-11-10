@@ -4,6 +4,12 @@ import Link from "next/link";
 
 const LOGO_SRC = "/tnc-logo-v1-transparent.png";
 
+const CAMPUSES = [
+  { time: "10:00 AM & 5:00 PM", place: "Davao City, Davao del Sur" },
+  { time: "9:30 AM", place: "Kapalong, Davao del Norte" },
+  { time: "9:30 AM", place: "Tagum, Davao del Norte" },
+] as const;
+
 function FooterBrand() {
   return (
     <Link
@@ -55,23 +61,31 @@ export function SiteFooter() {
     <footer className="bg-footer text-footer-foreground">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-8 sm:flex-row sm:items-center sm:justify-between lg:px-8">
         <FooterBrand />
-        <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:gap-14">
+        <div className="flex flex-col gap-5 sm:hidden">
+          {CAMPUSES.map((campus) => (
+            <div key={campus.place} className="flex flex-col gap-0.5">
+              <p className="text-sm text-footer-foreground">{campus.place}</p>
+              <p className="text-sm text-footer-muted">{campus.time}</p>
+            </div>
+          ))}
+        </div>
+        <div className="hidden sm:flex sm:items-start sm:gap-14">
           <FooterInfo label="Sunday Service">
             <div>
-              <span>10:00 AM & 5:00 PM</span>
-              <br />
-              <span>9:30 AM</span>
-              <br />
-              <span>9:30 AM</span>
+              {CAMPUSES.map((campus) => (
+                <span key={campus.place} className="block">
+                  {campus.time}
+                </span>
+              ))}
             </div>
           </FooterInfo>
           <FooterInfo label="Address">
             <div>
-              <span>Davao City, Davao del Sur</span>
-              <br />
-              <span>Kapalong, Davao del Norte</span>
-              <br />
-              <span>Tagum, Davao del Norte</span>
+              {CAMPUSES.map((campus) => (
+                <span key={campus.place} className="block">
+                  {campus.place}
+                </span>
+              ))}
             </div>
           </FooterInfo>
         </div>

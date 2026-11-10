@@ -16,11 +16,11 @@ export default async function Home() {
     <main className="relative flex flex-1 items-center justify-center overflow-hidden">
       <TrueNorthMark className="pointer-events-none absolute top-1/2 left-1/2 size-[28rem] -translate-x-1/2 -translate-y-1/2 opacity-[0.08]" />
 
-      <div className="relative mx-auto flex w-full max-w-3xl flex-col items-center gap-8 px-6 py-16 text-center lg:px-8 lg:py-20">
+      <div className="relative mx-auto flex w-full max-w-6xl flex-col items-center gap-8 px-6 py-16 text-center lg:px-8 lg:py-20">
         <p className="text-sm font-semibold tracking-[0.22em] text-primary uppercase">
           Sundays | 10:00 AM & 5:00 PM | 9:30 AM
         </p>
-        <h1 className="text-5xl uppercase leading-none font-extrabold tracking-tight whitespace-nowrap sm:text-5xl lg:text-6xl">
+        <h1 className="max-w-full text-balance text-[clamp(2.25rem,5.6vw,3.75rem)] font-extrabold uppercase leading-[0.92] tracking-tight">
           Always pointing to Christ
         </h1>
         <p className="max-w-lg text-lg leading-8 text-muted-foreground">
