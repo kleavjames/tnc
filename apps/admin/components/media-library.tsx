@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Button } from "@repo/ui/components/button";
+import { Skeleton } from "@repo/ui/components/skeleton";
 import {
   Table,
   TableBody,
@@ -162,10 +163,31 @@ export function MediaLibrary() {
                 </TableCell>
               </TableRow>
             ))}
-            {objects.length === 0 ? (
+            {objects.length === 0 && loading
+              ? Array.from({ length: 5 }, (_, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <Skeleton className="h-4 w-56" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-16" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-24" />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-2">
+                        <Skeleton className="h-8 w-24" />
+                        <Skeleton className="h-8 w-16" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              : null}
+            {objects.length === 0 && !loading ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-muted-foreground">
-                  {loading ? "Loading files..." : "No files yet."}
+                  No files yet.
                 </TableCell>
               </TableRow>
             ) : null}
