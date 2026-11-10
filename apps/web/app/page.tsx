@@ -2,10 +2,7 @@ import { PlayIcon } from "lucide-react";
 import { Button } from "@repo/ui/components/button";
 import { TrueNorthMark } from "../components/logo";
 import { PlanVisitButton } from "../components/plan-visit-modal";
-import {
-  getPublicContent,
-  isPublicHttpUrl,
-} from "@/lib/public-content";
+import { getPublicContent, isPublicHttpUrl } from "@/lib/public-content";
 
 export default async function Home() {
   const content = await getPublicContent();
@@ -14,7 +11,7 @@ export default async function Home() {
     : null;
   return (
     <main className="relative flex flex-1 items-center justify-center overflow-hidden">
-      <TrueNorthMark className="pointer-events-none absolute top-1/2 left-1/2 size-[28rem] -translate-x-1/2 -translate-y-1/2 opacity-[0.08]" />
+      <TrueNorthMark className="pointer-events-none absolute top-1/2 left-1/2 size-112 -translate-x-1/2 -translate-y-1/2 opacity-[0.08]" />
 
       <div className="relative mx-auto flex w-full max-w-6xl flex-col items-center gap-8 px-6 py-16 text-center lg:px-8 lg:py-20">
         <p className="text-sm font-semibold tracking-[0.22em] text-primary uppercase">

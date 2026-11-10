@@ -20,7 +20,7 @@ export default function Home() {
           aria-hidden
           width={448}
           height={448}
-          className="pointer-events-none absolute -right-10 -bottom-16 size-[28rem] object-contain opacity-[0.08]"
+          className="pointer-events-none absolute -right-10 -bottom-16 size-112 object-contain opacity-[0.08]"
         />
 
         <BrandMark />
