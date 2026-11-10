@@ -156,7 +156,7 @@ export function AppSidebar() {
           <SidebarMenuItem className={sidebarNavItemClassName(false)}>
             <SidebarMenuButton
               tooltip="Log out"
-              render={<Link href="/api/auth/logout" />}
+              render={<Link href="/api/auth/logout" prefetch={false} />}
               className={sidebarNavButtonClassName}
             >
               <LogOutIcon />
