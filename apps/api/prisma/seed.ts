@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Client } from 'pg';
 import { hashPassword } from '../src/auth/password.ts';
+import { loadEnvFiles } from '../src/load-env.ts';
 
 const users = [
   { username: 'admin', password: 'Ephphatha' },
@@ -24,7 +25,9 @@ async function main(): Promise<void> {
 }
 
 function databaseUrl(): string {
-  const connectionString = process.env.DATABASE_URL;
+  loadEnvFiles();
+  const connectionString =
+    process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error('DATABASE_URL is not set');
   }

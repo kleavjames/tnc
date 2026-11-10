@@ -1,8 +1,28 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 
 export function loadEnvFiles(): void {
-  loadEnvFile('.env', false);
-  loadEnvFile('.env.development.local', true);
+  loadEnvFile(resolve(process.cwd(), '.env'), false);
+  loadEnvFile(resolve(process.cwd(), '.env.development.local'), true);
+  const neonEnv = findUp('.env.local');
+  if (neonEnv) {
+    loadEnvFile(neonEnv, true);
+  }
+}
+
+function findUp(filename: string): string | undefined {
+  let dir = process.cwd();
+  while (true) {
+    const candidate = resolve(dir, filename);
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+    const parent = dirname(dir);
+    if (parent === dir) {
+      return undefined;
+    }
+    dir = parent;
+  }
 }
 
 function loadEnvFile(path: string, override: boolean): void {
