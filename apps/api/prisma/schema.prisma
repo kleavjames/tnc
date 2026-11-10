@@ -174,6 +174,8 @@ model Member {
   branchId       String
   branch         ChurchBranch    @relation(fields: [branchId], references: [id])
   isDgroupLeader Boolean         @default(false)
+  /// Admin decision after registration. New members stay unapproved until an admin sets this.
+  approved       Boolean         @default(false)
   dgroupMeetings DgroupMeeting[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
