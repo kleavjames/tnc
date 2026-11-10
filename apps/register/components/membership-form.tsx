@@ -15,6 +15,8 @@ import {
 import { Input } from "@repo/ui/components/input";
 import { Textarea } from "@repo/ui/components/textarea";
 import { cn } from "@repo/ui/lib/utils";
+import type { ChurchBranch } from "@/lib/church-branches";
+import { registerMember } from "@/lib/register-member";
 
 const cardClass =
   "[--card-spacing:--spacing(6)] sm:[--card-spacing:--spacing(8)]";
@@ -29,13 +31,6 @@ const CIVIL_STATUSES = [
   { value: "married", label: "Married" },
   { value: "widowed", label: "Widowed" },
   { value: "separated", label: "Separated" },
-] as const;
-
-/** Location name on ChurchBranch.branch. */
-const BRANCHES = [
-  { value: "Davao", label: "Davao" },
-  { value: "Kapalong", label: "Kapalong" },
-  { value: "Tagum", label: "Tagum" },
 ] as const;
 
 const WEEKDAYS = [
@@ -55,7 +50,6 @@ const LEADER = [
 
 type Gender = (typeof GENDERS)[number]["value"];
 type CivilStatus = (typeof CIVIL_STATUSES)[number]["value"];
-type Branch = (typeof BRANCHES)[number]["value"];
 type Weekday = (typeof WEEKDAYS)[number]["value"];
 
 type Meeting = {
@@ -75,7 +69,7 @@ type FormValues = {
   birthdate: string;
   gender: Gender | null;
   civilStatus: CivilStatus | null;
-  branch: Branch | null;
+  branch: string | null;
   isDgroupLeader: boolean;
   meetings: Meeting[];
 };
@@ -227,10 +221,21 @@ function ChoiceGroup<T extends string>({
   );
 }
 
-export function MembershipForm() {
+export function MembershipForm({
+  branches,
+}: {
+  /** Null when the branches could not be loaded. */
+  branches: ChurchBranch[] | null;
+}) {
   const [values, setValues] = useState<FormValues>(emptyForm);
   const [errors, setErrors] = useState<Errors>({});
   const [submittedName, setSubmittedName] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const branchOptions = (branches ?? []).map((item) => ({
+    value: item.id,
+    label: item.branch,
+  }));
   const [maxBirthdate, setMaxBirthdate] = useState<string | undefined>(
     undefined,
   );
@@ -293,13 +298,43 @@ export function MembershipForm() {
     });
   }
 
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting) return;
     const nextErrors = validate(values);
     setErrors(nextErrors);
     const errorId = firstErrorId(nextErrors, values.meetings);
     if (errorId) {
       document.getElementById(errorId)?.focus();
+      return;
+    }
+    if (!values.gender || !values.civilStatus || !values.branch) return;
+
+    setSubmitting(true);
+    setSubmitError(null);
+    const { error } = await registerMember({
+      firstName: values.firstName,
+      lastName: values.lastName,
+      mobileNumber: values.mobileNumber,
+      email: values.email,
+      messengerName: values.messengerName,
+      birthdate: values.birthdate,
+      gender: values.gender,
+      civilStatus: values.civilStatus,
+      branchId: values.branch,
+      isDgroupLeader: values.isDgroupLeader,
+      dgroupMeetings: values.isDgroupLeader
+        ? values.meetings.map(({ name, description, days, time }) => ({
+            name,
+            description,
+            days,
+            time,
+          }))
+        : undefined,
+    });
+    setSubmitting(false);
+    if (error) {
+      setSubmitError(error);
       return;
     }
     setSubmittedName(values.firstName.trim());
@@ -308,6 +343,7 @@ export function MembershipForm() {
   function registerAnother() {
     setValues(emptyForm());
     setErrors({});
+    setSubmitError(null);
     setSubmittedName(null);
   }
 
@@ -315,17 +351,38 @@ export function MembershipForm() {
     return (
       <main className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center px-4 py-10 sm:px-6">
         <Card className={cardClass}>
-          <CardContent className="flex flex-col gap-6">
-            <h1 className="text-3xl font-bold tracking-tight">
-              Thanks, {submittedName}
-            </h1>
-            <p className="max-w-md leading-7 text-muted-foreground">
-              An admin approves each new member.
-            </p>
+          <CardContent
+            role="status"
+            className="flex flex-col items-center gap-8 py-6 text-center sm:py-10"
+          >
+            <span className="flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary duration-300 animate-in fade-in zoom-in-50 motion-reduce:animate-none">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+                className="size-7"
+              >
+                <path d="M5 12.5l4.5 4.5L19 7.5" />
+              </svg>
+            </span>
+            <div className="flex flex-col gap-2">
+              <h1 className="text-2xl font-extrabold tracking-tight text-primary sm:text-3xl">
+                Thanks, {submittedName}
+              </h1>
+              <p className="max-w-xs leading-7 text-muted-foreground">
+                Your registration is in. An admin will review it and approve
+                your membership.
+              </p>
+            </div>
             <Button
               type="button"
               variant="outline"
-              className="w-fit"
+              size="lg"
+              className="w-full sm:w-auto"
               onClick={registerAnother}
             >
               Register another member
@@ -496,13 +553,20 @@ export function MembershipForm() {
                   id="branch"
                   label="Church branch"
                   value={values.branch}
-                  options={BRANCHES}
+                  options={branchOptions}
                   invalid={Boolean(errors.branch)}
                   onChange={(branch) => {
                     patch({ branch });
                     clearError("branch");
                   }}
                 />
+                {branchOptions.length === 0 ? (
+                  <FieldError>
+                    {branches === null
+                      ? "Church branches could not be loaded. Refresh the page to try again."
+                      : "No church branches are available yet."}
+                  </FieldError>
+                ) : null}
                 <FieldError>{errors.branch}</FieldError>
               </Field>
 
@@ -668,8 +732,18 @@ export function MembershipForm() {
             ) : null}
 
             <div className="flex flex-col gap-3">
-              <Button type="submit" size="xl" className="w-full">
-                Register
+              {submitError ? (
+                <p className="text-sm text-destructive" role="alert">
+                  {submitError}
+                </p>
+              ) : null}
+              <Button
+                type="submit"
+                size="xl"
+                className="w-full"
+                disabled={submitting}
+              >
+                {submitting ? "Registering" : "Register"}
               </Button>
               <FieldDescription>
                 An admin will approve your membership application.
