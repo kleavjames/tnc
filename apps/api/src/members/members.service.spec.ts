@@ -16,25 +16,27 @@ const body = {
 };
 
 describe('MembersService', () => {
-  it('creates an unapproved member with the Member role', async () => {
-    const create = vi
-      .fn()
-      .mockResolvedValue({ id: 'm1', membershipId: 'TNC-00001-26', approved: false });
+  it('creates a pending member with the Member role', async () => {
+    const create = vi.fn().mockResolvedValue({
+      id: 'm1',
+      membershipId: 'TNC-00001-26',
+      status: 'pending',
+    });
     const result = await service({
       churchBranch: { findUnique: vi.fn().mockResolvedValue({ id: 'b1' }) },
       role: { findUnique: vi.fn().mockResolvedValue({ id: 'r1' }) },
       member: { create },
-    }).create({ ...body, approved: true, roles: ['admin'] });
+    }).create({ ...body, status: 'approved', roles: ['admin'] });
 
     expect(create).toHaveBeenCalledTimes(1);
     const { data } = create.mock.calls[0][0];
-    expect(data.approved).toBe(false);
+    expect(data.status).toBe('pending');
     expect(data.roles).toEqual({ connect: { id: 'r1' } });
     expect(data.dgroupMeetings).toBeUndefined();
     expect(result).toEqual({
       id: 'm1',
       membershipId: 'TNC-00001-26',
-      approved: false,
+      status: 'pending',
     });
   });
 
@@ -75,29 +77,53 @@ describe('MembersService', () => {
       id: 'm1',
       birthdate: new Date('1994-06-12T00:00:00.000Z'),
       createdAt: new Date('2026-11-11T00:00:00.000Z'),
-      approved: true,
+      status: 'approved',
     });
     const member = await service({ member: { update } }).approve('m1');
 
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'm1' },
-        data: { approved: true },
+        data: { status: 'approved' },
       }),
     );
-    expect(member.approved).toBe(true);
+    expect(member.status).toBe('approved');
     expect(member.birthdate).toBe('1994-06-12');
   });
 
-  it('filters the list by approval and search', async () => {
+  it('deletes a rejected member and meetings left with nobody', async () => {
+    const deleteMember = vi.fn().mockResolvedValue({});
+    const deleteMany = vi.fn().mockResolvedValue({ count: 1 });
+    const tx = {
+      member: { delete: deleteMember },
+      dgroupMeeting: { deleteMany },
+    };
+    const result = await service({
+      member: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: 'm1',
+          dgroupMeetings: [{ id: 'g1' }],
+        }),
+      },
+      $transaction: vi.fn(async (run: (client: typeof tx) => unknown) => run(tx)),
+    }).reject('m1');
+
+    expect(deleteMember).toHaveBeenCalledWith({ where: { id: 'm1' } });
+    expect(deleteMany).toHaveBeenCalledWith({
+      where: { id: { in: ['g1'] }, members: { none: {} } },
+    });
+    expect(result).toEqual({ deleted: true });
+  });
+
+  it('filters the list by status and search', async () => {
     const findMany = vi.fn().mockResolvedValue([]);
     await service({ member: { findMany } }).list({
-      approved: 'false',
+      status: 'pending',
       search: 'mar',
     });
 
     const { where } = findMany.mock.calls[0][0];
-    expect(where.approved).toBe(false);
+    expect(where.status).toBe('pending');
     expect(where.OR).toHaveLength(5);
   });
 
@@ -114,6 +140,9 @@ describe('MembersService', () => {
 
     await expect(members.get('x')).rejects.toBeInstanceOf(NotFoundException);
     await expect(members.approve('x')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    await expect(members.reject('x')).rejects.toBeInstanceOf(
       NotFoundException,
     );
     await expect(members.remove('x')).rejects.toBeInstanceOf(
