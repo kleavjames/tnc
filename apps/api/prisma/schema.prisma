@@ -1,0 +1,96 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ArticleType {
+  glc
+  lnl
+  sermon
+}
+
+enum ArticleStatus {
+  draft
+  unpublish
+  published
+}
+
+model User {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  passwordHash String
+  sessions     Session[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("users")
+}
+
+/// Opaque login token. Only the SHA-256 hash is stored. `expiresAt` is 24 hours after login.
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+/// A named collection of articles. The cover lives in Cloudflare R2; `imageKey` is the object key.
+model Series {
+  id        String    @id @default(cuid())
+  title     String    @unique
+  imageKey  String?
+  articles  Article[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("series")
+}
+
+/// Teaching content. `imageKey` and `fileKey` are Cloudflare R2 object keys, not public URLs.
+model Article {
+  id            String        @id @default(cuid())
+  title         String
+  subtitle      String        @default("")
+  body          String        @default("")
+  verse         String
+  uploadedAt    DateTime      @default(now())
+  sermonDate    DateTime?
+  tags          String[]      @default([])
+  type          ArticleType
+  articleStatus ArticleStatus @default(draft)
+  imageKey      String?
+  fileKey       String?
+  videoLink     String?
+  audioLink     String?
+  seriesId      String?
+  series        Series?       @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([type])
+  @@index([uploadedAt])
+  @@map("articles")
+}
+
+/// Site-wide editable copy shown on the public website.
+model Content {
+  id           String   @id @default("site")
+  latestSermon String   @default("")
+  updatedAt    DateTime @updatedAt
+
+  @@map("content")
+}
