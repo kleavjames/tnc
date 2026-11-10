@@ -38,8 +38,12 @@ export type MeetingInput = {
 
 export type MemberCreate = MemberProfile & { dgroupMeetings: MeetingInput[] };
 
+const MEMBER_STATUSES = ['pending', 'approved', 'reject'] as const;
+
+type MemberStatus = (typeof MEMBER_STATUSES)[number];
+
 export type MemberFilters = {
-  approved?: boolean;
+  status?: MemberStatus;
   branchId?: string;
   search?: string;
 };
@@ -115,17 +119,13 @@ export function parseMemberUpdate(body: unknown): Partial<MemberProfile> {
 }
 
 export function parseMemberFilters(query: {
-  approved?: unknown;
+  status?: unknown;
   branchId?: unknown;
   search?: unknown;
 }): MemberFilters {
   const filters: MemberFilters = {};
-  if (query.approved === 'true') {
-    filters.approved = true;
-  } else if (query.approved === 'false') {
-    filters.approved = false;
-  } else if (query.approved !== undefined && query.approved !== '') {
-    throw new BadRequestException('approved must be true or false');
+  if (query.status !== undefined && query.status !== '') {
+    filters.status = oneOf(query.status, MEMBER_STATUSES, 'status');
   }
   if (typeof query.branchId === 'string' && query.branchId.trim()) {
     filters.branchId = query.branchId.trim();

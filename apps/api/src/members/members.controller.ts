@@ -25,7 +25,7 @@ export class MembersController {
   @UseGuards(AuthGuard)
   list(
     @Query()
-    query: { approved?: unknown; branchId?: unknown; search?: unknown },
+    query: { status?: unknown; branchId?: unknown; search?: unknown },
   ) {
     return this.members.list(query);
   }
@@ -48,10 +48,10 @@ export class MembersController {
     return this.members.approve(id);
   }
 
-  @Post(':id/unapprove')
+  @Post(':id/reject')
   @UseGuards(AuthGuard)
-  unapprove(@Param('id') id: string) {
-    return this.members.unapprove(id);
+  reject(@Param('id') id: string) {
+    return this.members.reject(id);
   }
 
   @Delete(':id')

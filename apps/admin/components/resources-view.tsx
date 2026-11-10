@@ -20,14 +20,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@repo/ui/components/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@repo/ui/components/dialog";
+import { Modal } from "@repo/ui/modal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -154,52 +147,25 @@ function ResourceActions({ article }: { article: Article }) {
 
   return (
     <>
-      <Dialog open={confirmOpen} onOpenChange={onOpenChange}>
-        <DialogContent
-          showCloseButton={false}
-          className="gap-0 overflow-hidden bg-background p-0 sm:max-w-md"
-        >
-          <DialogHeader className="flex-row items-center gap-4 bg-primary px-6 py-5 text-primary-foreground">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-foreground/15">
-              <Trash2Icon className="size-5" />
-            </div>
-            <div className="flex min-w-0 flex-col gap-1.5">
-              <DialogTitle className="text-lg font-semibold">
-                Delete article
-              </DialogTitle>
-              <DialogDescription className="text-primary-foreground/80">
-                This action cannot be undone.
-              </DialogDescription>
-            </div>
-          </DialogHeader>
-          <div className="flex flex-col gap-3 px-6 py-6">
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              You are about to permanently delete{" "}
-              <span className="font-semibold text-foreground">
-                “{article.title}”
-              </span>
-              . It will no longer be available to readers.
-            </p>
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
-          </div>
-          <DialogFooter className="m-0 border-t-0 bg-background px-6 pt-0 pb-6">
-            <Button
-              variant="outline"
-              disabled={deleting}
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={deleting}
-              onClick={() => void remove()}
-            >
-              {deleting ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <Modal
+        open={confirmOpen}
+        onOpenChange={onOpenChange}
+        icon={<Trash2Icon />}
+        title="Delete article"
+        description="This action cannot be undone."
+        confirmLabel={deleting ? "Deleting..." : "Delete"}
+        pending={deleting}
+        onConfirm={() => void remove()}
+      >
+        <p>
+          You are about to permanently delete{" "}
+          <span className="font-semibold text-foreground">
+            “{article.title}”
+          </span>
+          . It will no longer be available to readers.
+        </p>
+        {error ? <p className="text-destructive">{error}</p> : null}
+      </Modal>
       <DropdownMenu>
         <DropdownMenuTrigger render={<Button variant="ghost" size="icon" />}>
           <MoreHorizontalIcon />
