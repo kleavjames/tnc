@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ArticlesService } from './articles.service.js';
 
 const published = {
@@ -134,5 +134,22 @@ describe('published articles', () => {
       NotFoundException,
     );
     expect(download).not.toHaveBeenCalled();
+  });
+
+  it('rejects an article whose series does not exist', async () => {
+    const create = vi.fn();
+    const findUnique = vi.fn().mockResolvedValue(null);
+    await expect(
+      service({
+        article: { create },
+        series: { findUnique },
+      }).create({
+        title: 'Sunday',
+        type: 'sermon',
+        sermonDate: '2026-01-04',
+        seriesId: 'missing',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(create).not.toHaveBeenCalled();
   });
 });

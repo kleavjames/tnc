@@ -16,6 +16,7 @@ export type ArticleContent = {
   fileKey: string | null;
   videoLink: string | null;
   audioLink: string | null;
+  seriesId: string | null;
 };
 
 export function parseArticleContent(body: unknown): ArticleContent {
@@ -43,6 +44,7 @@ export function parseArticleContent(body: unknown): ArticleContent {
     fileKey: optionalKey(record.fileKey),
     videoLink: optionalUrl(record.videoLink, 'videoLink'),
     audioLink: optionalUrl(record.audioLink, 'audioLink'),
+    seriesId: optionalSeriesId(record.seriesId),
   };
 }
 
@@ -77,6 +79,17 @@ function sermonDate(value: unknown): Date {
 
 function optionalKey(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
+function optionalSeriesId(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const id = value.trim();
+  if (!id || id === 'none') {
+    return null;
+  }
+  return id;
 }
 
 function optionalUrl(value: unknown, field: string): string | null {

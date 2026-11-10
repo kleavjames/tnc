@@ -39,7 +39,8 @@ import {
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { cn } from "@repo/ui/lib/utils";
-import { ARTICLE_SERIES } from "../lib/articles";
+import { ChipInput } from "./chip-input";
+import type { SeriesItem } from "../lib/series";
 import {
   createDraft,
   createPublished,
@@ -191,14 +192,19 @@ function contentTypeFromName(name: string): string {
   return "application/octet-stream";
 }
 
-export function ArticleEditor({ article }: { article?: EditorArticle }) {
+export function ArticleEditor({
+  article,
+  series = [],
+}: {
+  article?: EditorArticle;
+  series?: SeriesItem[];
+}) {
   const [draft, setDraft] = useState<ArticleDraft>(() =>
     article ? draftFromArticle(article) : initialDraft,
   );
   const [articleFile, setArticleFile] = useState<ArticleFile | null>(() =>
     article?.fileKey ? fileFromKey(article.fileKey) : null,
   );
-  const [tagDraft, setTagDraft] = useState("");
   const [showSavedTime, setShowSavedTime] = useState(false);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [coverUploading, setCoverUploading] = useState(false);
@@ -326,6 +332,10 @@ export function ArticleEditor({ article }: { article?: EditorArticle }) {
       fileKey: fileRef.current?.key ?? current.fileKey,
       videoLink: current.videoLink.trim() || null,
       audioLink: current.audioLink.trim() || null,
+      seriesId:
+        current.seriesId && current.seriesId !== "none"
+          ? current.seriesId
+          : null,
     };
   }
 
@@ -424,20 +434,6 @@ export function ArticleEditor({ article }: { article?: EditorArticle }) {
     },
     [persist],
   );
-
-  function addTag() {
-    const next = tagDraft.trim();
-    if (!next) {
-      return;
-    }
-    setTagDraft("");
-    setDraft((current) => ({
-      ...current,
-      tags: current.tags.includes(next)
-        ? current.tags
-        : [...current.tags, next],
-    }));
-  }
 
   async function onCoverFile(file: File | undefined) {
     if (!file) {
@@ -614,7 +610,7 @@ export function ArticleEditor({ article }: { article?: EditorArticle }) {
 
   const seriesItems = [
     { label: "No series", value: "none" },
-    ...ARTICLE_SERIES.map((series) => ({ label: series, value: series })),
+    ...series.map((item) => ({ label: item.title, value: item.id })),
   ];
   const statusLabel = ARTICLE_STATUSES.find(
     (item) => item.value === draft.articleStatus,
@@ -865,54 +861,36 @@ export function ArticleEditor({ article }: { article?: EditorArticle }) {
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="article-tag">Tags</Label>
-                <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-md border border-input bg-white px-2 py-1.5 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
-                  {draft.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2 py-0.5 text-xs font-medium"
-                    >
-                      {tag}
-                      <button
-                        type="button"
-                        className="text-muted-foreground hover:text-foreground"
-                        aria-label={`Remove ${tag}`}
-                        onClick={() =>
-                          update(
-                            "tags",
-                            draft.tags.filter((item) => item !== tag),
-                          )
-                        }
-                      >
-                        <XIcon className="size-3" />
-                      </button>
-                    </span>
-                  ))}
-                  <input
-                    id="article-tag"
-                    value={tagDraft}
-                    onChange={(event) => setTagDraft(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        addTag();
-                      }
-                    }}
-                    onBlur={addTag}
-                    placeholder="Add a tag"
-                    className="h-6 min-w-16 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                  />
-                </div>
+                <ChipInput
+                  id="article-tag"
+                  values={draft.tags}
+                  placeholder="Add a tag"
+                  onAdd={(tag) =>
+                    setDraft((current) => ({
+                      ...current,
+                      tags: current.tags.includes(tag)
+                        ? current.tags
+                        : [...current.tags, tag],
+                    }))
+                  }
+                  onRemove={(tag) =>
+                    setDraft((current) => ({
+                      ...current,
+                      tags: current.tags.filter((item) => item !== tag),
+                    }))
+                  }
+                />
               </div>
               <div className="flex flex-col gap-2">
                 <Label>Series</Label>
                 <Select
                   items={seriesItems}
-                  value={draft.seriesId}
+                  value={draft.seriesId ?? "none"}
                   onValueChange={(value) => {
                     if (typeof value !== "string") {
                       return;
                     }
-                    update("seriesId", value);
+                    update("seriesId", value === "none" ? null : value);
                   }}
                 >
                   <SelectTrigger className={cn("h-10 w-full", fieldClass)}>

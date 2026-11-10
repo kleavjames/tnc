@@ -18,10 +18,3 @@ export const ARTICLE_TYPE_LABELS: Record<ArticleType, string> = {
   lnl: "Life on Life",
   sermon: "Sermon",
 };
-
-export const ARTICLE_SERIES = [
-  "Emmanuel",
-  "Standalone",
-  "New Year 2026",
-  "Sermon on the Mount",
-] as const;

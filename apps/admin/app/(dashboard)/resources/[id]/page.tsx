@@ -1,5 +1,6 @@
 import { ArticleEditor } from "@/components/article-editor";
 import { getArticle } from "@/lib/list-articles";
+import { getSeries } from "@/lib/series";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -13,9 +14,9 @@ export default async function EditArticlePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const article = await getArticle(id);
+  const [article, series] = await Promise.all([getArticle(id), getSeries()]);
   if (!article) {
     notFound();
   }
-  return <ArticleEditor article={article} />;
+  return <ArticleEditor article={article} series={series} />;
 }

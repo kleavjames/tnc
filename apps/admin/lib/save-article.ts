@@ -10,6 +10,7 @@ export type ArticleContent = {
   fileKey: string | null;
   videoLink: string | null;
   audioLink: string | null;
+  seriesId: string | null;
 };
 
 export type SavedArticle = {

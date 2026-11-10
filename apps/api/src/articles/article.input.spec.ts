@@ -30,7 +30,28 @@ describe('parseArticleContent', () => {
       fileKey: 'files/notes.pdf',
       videoLink: null,
       audioLink: null,
+      seriesId: null,
     });
+  });
+
+  it('clears a missing series and keeps a series id', () => {
+    expect(
+      parseArticleContent({
+        title: 'Sunday',
+        type: 'sermon',
+        sermonDate: '2026-01-04',
+        seriesId: ' none ',
+      }),
+    ).toMatchObject({ seriesId: null });
+
+    expect(
+      parseArticleContent({
+        title: 'Sunday',
+        type: 'sermon',
+        sermonDate: '2026-01-04',
+        seriesId: ' series-1 ',
+      }),
+    ).toMatchObject({ seriesId: 'series-1' });
   });
 
   it('keeps http(s) media links and clears blanks', () => {

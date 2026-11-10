@@ -51,7 +51,7 @@ model Session {
 /// A named collection of articles. The cover lives in Cloudflare R2; `imageKey` is the object key.
 model Series {
   id        String    @id @default(cuid())
-  title     String
+  title     String    @unique
   imageKey  String?
   articles  Article[]
   createdAt DateTime  @default(now())

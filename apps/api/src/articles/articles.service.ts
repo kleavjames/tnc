@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { StorageService } from '../storage/storage.service.js';
 import { parseArticleContent } from './article.input.js';
@@ -127,25 +131,25 @@ export class ArticlesService {
     return this.storage.download(article.fileKey);
   }
 
-  create(body: unknown) {
+  async create(body: unknown) {
     return this.prisma.article.create({
-      data: { ...parseArticleContent(body), articleStatus: 'draft' },
+      data: { ...(await this.articleData(body)), articleStatus: 'draft' },
     });
   }
 
-  publishNew(body: unknown) {
+  async publishNew(body: unknown) {
     return this.prisma.article.create({
-      data: { ...parseArticleContent(body), articleStatus: 'published' },
+      data: { ...(await this.articleData(body)), articleStatus: 'published' },
     });
   }
 
-  update(id: string, body: unknown) {
-    return this.write(id, parseArticleContent(body));
+  async update(id: string, body: unknown) {
+    return this.write(id, await this.articleData(body));
   }
 
-  publish(id: string, body: unknown) {
+  async publish(id: string, body: unknown) {
     return this.write(id, {
-      ...parseArticleContent(body),
+      ...(await this.articleData(body)),
       articleStatus: 'published',
     });
   }
@@ -164,6 +168,21 @@ export class ArticlesService {
       throw error;
     }
     return { deleted: true as const };
+  }
+
+  private async articleData(body: unknown) {
+    const data = parseArticleContent(body);
+    if (!data.seriesId) {
+      return data;
+    }
+    const series = await this.prisma.series.findUnique({
+      where: { id: data.seriesId },
+      select: { id: true },
+    });
+    if (!series) {
+      throw new BadRequestException('seriesId is invalid');
+    }
+    return data;
   }
 
   private async write(
