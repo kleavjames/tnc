@@ -91,7 +91,14 @@ export function MembersView({ members }: { members: Member[] }) {
                   <TableCell className="font-medium">
                     {member.membershipId}
                   </TableCell>
-                  <TableCell>{memberName(member)}</TableCell>
+                  <TableCell>
+                    <Link
+                      href={`/members/${member.id}`}
+                      className="font-medium hover:underline"
+                    >
+                      {memberName(member)}
+                    </Link>
+                  </TableCell>
                   <TableCell>{member.mobileNumber}</TableCell>
                   <TableCell>{member.email ?? "—"}</TableCell>
                   <TableCell>{branchLabel(member.branch)}</TableCell>

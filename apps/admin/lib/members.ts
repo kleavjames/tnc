@@ -19,6 +19,7 @@ export type Member = {
   status: MemberStatus;
   createdAt: string;
   branch: { id: string; name: string; branch: string };
+  roles: string[];
   dgroupMeetings: {
     id: string;
     name: string;
@@ -71,6 +72,37 @@ export async function listMembers(
   });
 }
 
+export async function getMember(id: string): Promise<Member | null> {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (!token) {
+    redirect("/");
+  }
+
+  const response = await fetch(
+    `${apiBaseUrl()}/members/${encodeURIComponent(id)}`,
+    {
+      headers: { authorization: `Bearer ${token}` },
+      cache: "no-store",
+    },
+  );
+
+  if (response.status === 401) {
+    redirect("/api/auth/logout");
+  }
+  if (response.status === 404) {
+    return null;
+  }
+  if (!response.ok) {
+    throw new Error("Could not load the member.");
+  }
+
+  const member = parseMember(await response.json());
+  if (!member) {
+    throw new Error("Could not load the member.");
+  }
+  return member;
+}
+
 function parseMember(value: unknown): Member | null {
   if (!value || typeof value !== "object") {
     return null;
@@ -108,8 +140,19 @@ function parseMember(value: unknown): Member | null {
     status: record.status,
     createdAt: record.createdAt,
     branch: record.branch,
+    roles: roleNames(record.roles),
     dgroupMeetings: meetings(record.dgroupMeetings),
   };
+}
+
+function roleNames(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.flatMap((item) => {
+    const name = (item as { name?: unknown } | null)?.name;
+    return typeof name === "string" ? [name] : [];
+  });
 }
 
 function isStatus(value: unknown): value is MemberStatus {
