@@ -3,6 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   LayoutGridIcon,
   ListIcon,
@@ -31,12 +32,6 @@ import {
   InputGroupInput,
 } from "@repo/ui/components/input-group";
 import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-} from "@repo/ui/components/pagination";
-import {
   Select,
   SelectContent,
   SelectGroup,
@@ -56,9 +51,6 @@ import { Tabs, TabsList, TabsTrigger } from "@repo/ui/components/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@repo/ui/components/toggle-group";
 import { cn } from "@repo/ui/lib/utils";
 import {
-  ARTICLES,
-  ARTICLE_SERIES,
-  ARTICLE_TYPE_COUNTS,
   ARTICLE_TYPE_LABELS,
   type Article,
   type ArticleType,
@@ -66,30 +58,6 @@ import {
 
 type TypeFilter = "all" | ArticleType;
 type ViewMode = "list" | "covers";
-
-const typeTabs: Array<{ value: TypeFilter; label: string; count: number }> = [
-  { value: "all", label: "All", count: ARTICLE_TYPE_COUNTS.all },
-  {
-    value: "glc",
-    label: ARTICLE_TYPE_LABELS.glc,
-    count: ARTICLE_TYPE_COUNTS.glc,
-  },
-  {
-    value: "life-on-life",
-    label: ARTICLE_TYPE_LABELS["life-on-life"],
-    count: ARTICLE_TYPE_COUNTS["life-on-life"],
-  },
-  {
-    value: "sermons",
-    label: ARTICLE_TYPE_LABELS.sermons,
-    count: ARTICLE_TYPE_COUNTS.sermons,
-  },
-];
-
-const seriesItems = [
-  { label: "Series: All", value: "all" },
-  ...ARTICLE_SERIES.map((series) => ({ label: series, value: series })),
-];
 
 const sortItems = [
   { label: "Newest first", value: "newest" },
@@ -116,22 +84,60 @@ function ResourceCover({ className }: { className?: string }) {
   );
 }
 
+function formatUploaded(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+}
+
 function TypeBadge({ type }: { type: ArticleType }) {
   return <Badge variant="secondary">{ARTICLE_TYPE_LABELS[type]}</Badge>;
 }
 
-function ResourceActions({ title }: { title: string }) {
+const STATUS_LABELS: Record<Article["articleStatus"], string> = {
+  draft: "Draft",
+  published: "Published",
+  unpublish: "Unpublished",
+};
+
+function ResourceActions({ article }: { article: Article }) {
+  const router = useRouter();
+
+  async function remove() {
+    if (!window.confirm(`Delete “${article.title}”?`)) {
+      return;
+    }
+    const response = await fetch(
+      `/api/articles/${encodeURIComponent(article.id)}`,
+      { method: "DELETE" },
+    );
+    if (response.ok) {
+      router.refresh();
+    }
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger render={<Button variant="ghost" size="icon" />}>
         <MoreHorizontalIcon />
-        <span className="sr-only">Open actions for {title}</span>
+        <span className="sr-only">Open actions for {article.title}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-40">
         <DropdownMenuGroup>
-          <DropdownMenuItem>Edit</DropdownMenuItem>
-          <DropdownMenuItem>Duplicate</DropdownMenuItem>
-          <DropdownMenuItem variant="destructive">Delete</DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => router.push(`/resources/${article.id}`)}
+          >
+            Edit
+          </DropdownMenuItem>
+          <DropdownMenuItem variant="destructive" onClick={() => void remove()}>
+            Delete
+          </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -160,35 +166,53 @@ function filterResources(
     const matchesQuery =
       normalized.length === 0 ||
       article.title.toLowerCase().includes(normalized) ||
-      article.speaker.toLowerCase().includes(normalized) ||
-      article.scripture.toLowerCase().includes(normalized);
+      article.subtitle.toLowerCase().includes(normalized) ||
+      article.verse.toLowerCase().includes(normalized);
 
     return matchesType && matchesSeries && matchesQuery;
   });
-
-  if (sort === "newest") {
-    return filtered;
-  }
 
   return [...filtered].sort((a, b) => {
     if (sort === "title") {
       return a.title.localeCompare(b.title);
     }
 
-    const aTime = Date.parse(a.dateUploaded);
-    const bTime = Date.parse(b.dateUploaded);
-    return aTime - bTime;
+    const aTime = Date.parse(a.uploadedAt);
+    const bTime = Date.parse(b.uploadedAt);
+    return sort === "oldest" ? aTime - bTime : bTime - aTime;
   });
 }
 
-export function ResourcesView() {
+export function ResourcesView({ articles }: { articles: Article[] }) {
   const [type, setType] = React.useState<TypeFilter>("all");
   const [view, setView] = React.useState<ViewMode>("list");
   const [query, setQuery] = React.useState("");
   const [series, setSeries] = React.useState("all");
   const [sort, setSort] = React.useState("newest");
 
-  const articles = filterResources(ARTICLES, { type, query, series, sort });
+  const typeTabs = [
+    { value: "all" as const, label: "All", count: articles.length },
+    ...(["glc", "lnl", "sermon"] as const).map((value) => ({
+      value,
+      label: ARTICLE_TYPE_LABELS[value],
+      count: articles.filter((article) => article.type === value).length,
+    })),
+  ];
+  const seriesNames = [
+    ...new Set(
+      articles.flatMap((article) => (article.series ? [article.series] : [])),
+    ),
+  ].sort((a, b) => a.localeCompare(b));
+  const seriesItems = [
+    { label: "Series: All", value: "all" },
+    ...seriesNames.map((name) => ({ label: name, value: name })),
+  ];
+  const visibleArticles = filterResources(articles, {
+    type,
+    query,
+    series,
+    sort,
+  });
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-6 lg:p-8">
@@ -197,7 +221,7 @@ export function ResourcesView() {
           <InputGroupInput
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search sermons, speakers, scripture..."
+            placeholder="Search title or scripture..."
           />
           <InputGroupAddon>
             <SearchIcon />
@@ -306,32 +330,21 @@ export function ResourcesView() {
         </div>
       </div>
 
-      {view === "list" ? (
-        <ResourcesTable articles={articles} />
+      {visibleArticles.length === 0 ? (
+        <p className="rounded-md border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
+          {articles.length === 0
+            ? "No articles yet."
+            : "No articles match these filters."}
+        </p>
+      ) : view === "list" ? (
+        <ResourcesTable articles={visibleArticles} />
       ) : (
-        <ResourcesCoverGrid articles={articles} />
+        <ResourcesCoverGrid articles={visibleArticles} />
       )}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-muted-foreground">
-          Showing {articles.length} of {ARTICLE_TYPE_COUNTS.all} articles
-        </p>
-        <Pagination className="mx-0 w-auto justify-end">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationLink href="#" isActive>
-                1
-              </PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#">2</PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#">3</PaginationLink>
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      </div>
+      <p className="text-sm text-muted-foreground">
+        Showing {visibleArticles.length} of {articles.length} articles
+      </p>
     </div>
   );
 }
@@ -352,6 +365,9 @@ function ResourcesTable({ articles }: { articles: Article[] }) {
               Type
             </TableHead>
             <TableHead className="text-muted-foreground font-bold">
+              Status
+            </TableHead>
+            <TableHead className="text-muted-foreground font-bold">
               Date uploaded
             </TableHead>
             <TableHead className="w-10">
@@ -370,18 +386,19 @@ function ResourcesTable({ articles }: { articles: Article[] }) {
                       {article.title}
                     </span>
                     <span className="truncate text-xs text-muted-foreground">
-                      {article.scripture}
+                      {article.verse}
                     </span>
                   </div>
                 </div>
               </TableCell>
-              <TableCell>{article.series}</TableCell>
+              <TableCell>{article.series ?? "No series"}</TableCell>
               <TableCell>
                 <TypeBadge type={article.type} />
               </TableCell>
-              <TableCell>{article.dateUploaded}</TableCell>
+              <TableCell>{STATUS_LABELS[article.articleStatus]}</TableCell>
+              <TableCell>{formatUploaded(article.uploadedAt)}</TableCell>
               <TableCell>
-                <ResourceActions title={article.title} />
+                <ResourceActions article={article} />
               </TableCell>
             </TableRow>
           ))}
@@ -402,12 +419,14 @@ function ResourcesCoverGrid({ articles }: { articles: Article[] }) {
               <div className="flex min-w-0 flex-col gap-1">
                 <CardTitle>{article.title}</CardTitle>
                 <span className="text-sm text-muted-foreground">
-                  {article.scripture}
+                  {article.verse}
                 </span>
               </div>
-              <ResourceActions title={article.title} />
+              <ResourceActions article={article} />
             </div>
-            <CardDescription>{article.speaker}</CardDescription>
+            {article.subtitle ? (
+              <CardDescription>{article.subtitle}</CardDescription>
+            ) : null}
             <TypeBadge type={article.type} />
           </CardHeader>
         </Card>

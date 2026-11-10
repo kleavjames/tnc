@@ -24,6 +24,30 @@ enum ArticleStatus {
   published
 }
 
+model User {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  passwordHash String
+  sessions     Session[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("users")
+}
+
+/// Opaque login token. Only the SHA-256 hash is stored. `expiresAt` is 24 hours after login.
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("sessions")
+}
+
 /// A named collection of articles. The cover lives in Cloudflare R2; `imageKey` is the object key.
 model Series {
   id        String    @id @default(cuid())
@@ -40,6 +64,8 @@ model Series {
 model Article {
   id            String        @id @default(cuid())
   title         String
+  subtitle      String        @default("")
+  body          String        @default("")
   verse         String
   uploadedAt    DateTime      @default(now())
   tags          String[]      @default([])

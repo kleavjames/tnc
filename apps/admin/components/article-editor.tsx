@@ -1,7 +1,6 @@
 "use client";
 
-import * as React from "react";
-import Image from "next/image";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import {
   BookOpenIcon,
@@ -13,11 +12,9 @@ import {
   UploadIcon,
   XIcon,
 } from "lucide-react";
-import { Avatar, AvatarFallback } from "@repo/ui/components/avatar";
 import { Button } from "@repo/ui/components/button";
 import {
   Card,
-  CardAction,
   CardContent,
   CardHeader,
   CardTitle,
@@ -32,11 +29,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/ui/components/select";
-import { Switch } from "@repo/ui/components/switch";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { cn } from "@repo/ui/lib/utils";
 import { ARTICLE_SERIES } from "../lib/articles";
+import {
+  createDraft,
+  createPublished,
+  publishArticle,
+  unpublishArticle,
+  updateArticle,
+  type ArticleContent,
+} from "../lib/save-article";
 import {
   deleteObject,
   downloadObject,
@@ -46,23 +50,22 @@ import {
 
 const STORAGE_KEY = "tnc.article-draft";
 const MAX_FILE_BYTES = 200 * 1024 * 1024;
+const EMPTY_BODY = "<p></p>";
 
-const SPEAKERS = [
-  { name: "Ptr. Daniel Reyes", initials: "DR" },
-  { name: "Ptr. Grace Lim", initials: "GL" },
-  { name: "Bro. Mark Tan", initials: "MT" },
+const ARTICLE_TYPES = [
+  { label: "GLC", value: "glc" },
+  { label: "Life on Life", value: "lnl" },
+  { label: "Sermon", value: "sermon" },
 ] as const;
 
-const VISIBILITY = [
-  { label: "Public", value: "Public" },
-  { label: "Unlisted", value: "Unlisted" },
-  { label: "Private", value: "Private" },
+const ARTICLE_STATUSES = [
+  { label: "Draft", value: "draft" },
+  { label: "Unpublished", value: "unpublish" },
+  { label: "Published", value: "published" },
 ] as const;
 
-const DEFAULT_BODY = `<p>Christmas week has a way of filling every room — and then emptying it just as quickly. The guests go home, the decorations come down, and the quiet can feel heavier than before.</p><blockquote><p>“And surely I am with you always, to the very end of the age.”</p><p>Matthew 28:20</p></blockquote><h2>1. He stays when the season changes</h2><p>Emmanuel was never a holiday name. It is a promise for ordinary Tuesdays, for hospital waiting rooms, for the first Monday back at work</p>`;
-
-type CoverMode = "generated" | "background" | "custom";
-type ArticleStatus = "draft" | "published";
+type ArticleType = (typeof ARTICLE_TYPES)[number]["value"];
+type ArticleStatus = (typeof ARTICLE_STATUSES)[number]["value"];
 
 type ArticleFile = {
   id: string;
@@ -75,101 +78,127 @@ type ArticleFile = {
 };
 
 type ArticleDraft = {
+  id: string | null;
   title: string;
   subtitle: string;
   bodyHtml: string;
-  videoUrl: string;
-  podcastUrl: string;
-  speaker: string;
-  serviceDate: string;
-  series: string;
-  scriptures: string[];
-  membersCanDownload: boolean;
-  visibility: string;
-  publishAt: string;
-  slug: string;
-  slugTouched: boolean;
-  status: ArticleStatus;
-  coverMode: CoverMode;
-  coverKey: string | null;
-  files: Array<Omit<ArticleFile, "loaded" | "error">>;
+  verse: string;
+  tags: string[];
+  type: ArticleType | null;
+  articleStatus: ArticleStatus | null;
+  imageKey: string | null;
+  fileKey: string | null;
+  fileName: string | null;
+  fileSize: number;
+  fileContentType: string | null;
+  seriesId: string | null;
   savedAt: string;
 };
 
-const initialSavedAt = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+const fieldClass =
+  "border-input bg-white shadow-none focus-visible:border-ring";
 
 const initialDraft: ArticleDraft = {
-  title: "The God Who Stays",
-  subtitle:
-    "When the season ends and the lights come down, His presence remains.",
-  bodyHtml: DEFAULT_BODY,
-  videoUrl: "https://youtube.com/live/tn-dec28",
-  podcastUrl: "",
-  speaker: "Ptr. Daniel Reyes",
-  serviceDate: "2025-12-28",
-  series: "Emmanuel",
-  scriptures: ["Matthew 28:20", "Isaiah 7:14"],
-  membersCanDownload: true,
-  visibility: "Public",
-  publishAt: "2025-12-28T14:00",
-  slug: "the-god-who-stays",
-  slugTouched: false,
-  status: "draft",
-  coverMode: "generated",
-  coverKey: null,
-  files: [],
-  savedAt: initialSavedAt,
+  id: null,
+  title: "",
+  subtitle: "",
+  bodyHtml: "",
+  verse: "",
+  tags: [],
+  type: null,
+  articleStatus: null,
+  imageKey: null,
+  fileKey: null,
+  fileName: null,
+  fileSize: 0,
+  fileContentType: null,
+  seriesId: null,
+  savedAt: new Date().toISOString(),
 };
 
-export function ArticleEditor() {
-  const [draft, setDraft] = React.useState<ArticleDraft>(initialDraft);
-  const [files, setFiles] = React.useState<ArticleFile[]>([]);
-  const [scriptureDraft, setScriptureDraft] = React.useState("");
-  const [preview, setPreview] = React.useState(false);
-  const [ready, setReady] = React.useState(false);
-  const [showSavedTime, setShowSavedTime] = React.useState(false);
-  const [coverPreview, setCoverPreview] = React.useState<string | null>(null);
-  const [coverUploading, setCoverUploading] = React.useState(false);
-  const [coverError, setCoverError] = React.useState<string | null>(null);
-  const [fileError, setFileError] = React.useState<string | null>(null);
-  const [dragging, setDragging] = React.useState(false);
-  const [initialHtml, setInitialHtml] = React.useState(DEFAULT_BODY);
-  const [, setTick] = React.useState(0);
-  const bodyHtmlRef = React.useRef(DEFAULT_BODY);
-  const draftRef = React.useRef(draft);
-  const filesRef = React.useRef(files);
-  const uploads = React.useRef(new Map<string, AbortController>());
-  const backgroundInputRef = React.useRef<HTMLInputElement>(null);
-  const customInputRef = React.useRef<HTMLInputElement>(null);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+export type EditorArticle = {
+  id: string;
+  title: string;
+  subtitle: string;
+  body: string;
+  verse: string;
+  tags: string[];
+  type: ArticleType | null;
+  articleStatus: ArticleStatus | null;
+  imageKey: string | null;
+  fileKey: string | null;
+  seriesId: string | null;
+};
+
+function draftFromArticle(article: EditorArticle): ArticleDraft {
+  return {
+    ...initialDraft,
+    id: article.id,
+    title: article.title,
+    subtitle: article.subtitle,
+    bodyHtml: article.body,
+    verse: article.verse,
+    tags: article.tags,
+    type: article.type,
+    articleStatus: article.articleStatus,
+    imageKey: article.imageKey,
+    fileKey: article.fileKey,
+    seriesId: article.seriesId,
+  };
+}
+
+function fileFromKey(key: string): ArticleFile {
+  return {
+    id: key,
+    name: "File",
+    size: 0,
+    loaded: 0,
+    contentType: "application/octet-stream",
+    key,
+    error: null,
+  };
+}
+
+export function ArticleEditor({ article }: { article?: EditorArticle }) {
+  const [draft, setDraft] = useState<ArticleDraft>(() =>
+    article ? draftFromArticle(article) : initialDraft,
+  );
+  const [articleFile, setArticleFile] = useState<ArticleFile | null>(() =>
+    article?.fileKey ? fileFromKey(article.fileKey) : null,
+  );
+  const [tagDraft, setTagDraft] = useState("");
+  const [showSavedTime, setShowSavedTime] = useState(false);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [coverError, setCoverError] = useState<string | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [, setTick] = useState(0);
+  const bodyHtmlRef = useRef(article?.body ?? "");
+  const draftRef = useRef(draft);
+  const fileRef = useRef<ArticleFile | null>(null);
+  const uploads = useRef(new Map<string, AbortController>());
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const savingRef = useRef(false);
 
   draftRef.current = draft;
-  filesRef.current = files;
+  fileRef.current = articleFile;
 
-  React.useLayoutEffect(() => {
-    const stored = readDraft();
-    const html = stored?.bodyHtml || DEFAULT_BODY;
-    bodyHtmlRef.current = html;
-    setInitialHtml(html);
-    if (stored) {
-      setDraft(stored);
-      setFiles(
-        stored.files.map((file) => ({
-          ...file,
-          loaded: file.size,
-          error: null,
-        })),
-      );
+  useEffect(() => {
+    if (!article) {
+      localStorage.removeItem(STORAGE_KEY);
     }
-    setReady(true);
-  }, []);
+  }, [article]);
 
-  React.useEffect(() => {
-    if (!draft.coverKey || coverPreview) {
+  useEffect(() => {
+    if (!draft.imageKey || coverPreview) {
       return;
     }
     let cancel = false;
-    void presignDownload(draft.coverKey)
+    void presignDownload(draft.imageKey)
       .then((url) => {
         if (!cancel) {
           setCoverPreview(url);
@@ -183,87 +212,134 @@ export function ArticleEditor() {
     return () => {
       cancel = true;
     };
-  }, [draft.coverKey, coverPreview]);
+  }, [draft.imageKey, coverPreview]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setShowSavedTime(true);
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const id = window.setInterval(() => setTick((value) => value + 1), 30000);
     return () => window.clearInterval(id);
   }, []);
 
-  const persist = React.useCallback((patch?: Partial<ArticleDraft>) => {
+  const persist = useCallback((patch?: Partial<ArticleDraft>) => {
+    const file = fileRef.current;
     const next: ArticleDraft = {
       ...draftRef.current,
       ...patch,
       bodyHtml: bodyHtmlRef.current,
-      files: filesRef.current.flatMap((file) =>
-        file.key
-          ? [
-              {
-                id: file.id,
-                name: file.name,
-                size: file.size,
-                contentType: file.contentType,
-                key: file.key,
-              },
-            ]
-          : [],
-      ),
+      fileKey: file?.key ?? draftRef.current.fileKey,
+      fileName: file?.name ?? draftRef.current.fileName,
+      fileSize: file?.size ?? draftRef.current.fileSize,
+      fileContentType: file?.contentType ?? draftRef.current.fileContentType,
       savedAt: new Date().toISOString(),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    setDraft((current) => ({
-      ...current,
-      ...patch,
-      savedAt: next.savedAt,
-    }));
+    setDraft(next);
   }, []);
 
-  React.useEffect(() => {
-    if (!ready) {
+  function articleContent(current: ArticleDraft): ArticleContent | null {
+    if (!current.type) {
+      setSaveError("Choose a type.");
+      return null;
+    }
+    return {
+      title: current.title,
+      subtitle: current.subtitle,
+      body: bodyHtmlRef.current,
+      verse: current.verse,
+      tags: current.tags,
+      type: current.type,
+      imageKey: current.imageKey,
+      fileKey: fileRef.current?.key ?? current.fileKey,
+    };
+  }
+
+  async function runSave(action: () => Promise<{ id: string; articleStatus: ArticleStatus }>) {
+    if (savingRef.current) {
       return;
     }
+    const content = articleContent(draftRef.current);
+    if (!content) {
+      return;
+    }
+    savingRef.current = true;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const saved = await action();
+      persist({ id: saved.id, articleStatus: saved.articleStatus });
+    } catch (error) {
+      setSaveError(
+        error instanceof Error ? error.message : "Could not save the article.",
+      );
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  }
+
+  function saveDraft() {
+    const current = draftRef.current;
+    const content = articleContent(current);
+    if (!content) {
+      return;
+    }
+    return runSave(() =>
+      current.id ? updateArticle(current.id, content) : createDraft(content),
+    );
+  }
+
+  function publish() {
+    const current = draftRef.current;
+    if (current.articleStatus === "published") {
+      return;
+    }
+    const content = articleContent(current);
+    if (!content) {
+      return;
+    }
+    return runSave(() =>
+      current.id
+        ? publishArticle(current.id, content)
+        : createPublished(content),
+    );
+  }
+
+  function unpublish() {
+    const id = draftRef.current.id;
+    if (!id) {
+      return;
+    }
+    return runSave(() => unpublishArticle(id));
+  }
+
+  useEffect(() => {
     const timer = window.setTimeout(() => persist(), 800);
     return () => window.clearTimeout(timer);
   }, [
-    ready,
     persist,
     draft.title,
     draft.subtitle,
-    draft.videoUrl,
-    draft.podcastUrl,
-    draft.speaker,
-    draft.serviceDate,
-    draft.series,
-    draft.scriptures,
-    draft.membersCanDownload,
-    draft.visibility,
-    draft.publishAt,
-    draft.slug,
-    draft.slugTouched,
-    draft.status,
-    draft.coverMode,
-    draft.coverKey,
-    files,
+    draft.verse,
+    draft.tags,
+    draft.type,
+    draft.articleStatus,
+    draft.imageKey,
+    draft.fileKey,
+    draft.seriesId,
   ]);
 
-  function update<K extends keyof ArticleDraft>(key: K, value: ArticleDraft[K]) {
+  function update<K extends keyof ArticleDraft>(
+    key: K,
+    value: ArticleDraft[K],
+  ) {
     setDraft((current) => ({ ...current, [key]: value }));
   }
 
-  function onTitleChange(value: string) {
-    setDraft((current) => ({
-      ...current,
-      title: value,
-      slug: current.slugTouched ? current.slug : slugify(value),
-    }));
-  }
-
-  const bodyTimer = React.useRef<number | null>(null);
-  const onBodyChange = React.useCallback(
+  const bodyTimer = useRef<number | null>(null);
+  const onBodyChange = useCallback(
     (html: string) => {
       bodyHtmlRef.current = html;
       if (bodyTimer.current) {
@@ -274,21 +350,21 @@ export function ArticleEditor() {
     [persist],
   );
 
-  function addScripture() {
-    const next = scriptureDraft.trim();
+  function addTag() {
+    const next = tagDraft.trim();
     if (!next) {
       return;
     }
-    setScriptureDraft("");
+    setTagDraft("");
     setDraft((current) => ({
       ...current,
-      scriptures: current.scriptures.includes(next)
-        ? current.scriptures
-        : [...current.scriptures, next],
+      tags: current.tags.includes(next)
+        ? current.tags
+        : [...current.tags, next],
     }));
   }
 
-  async function onCoverFile(file: File | undefined, mode: CoverMode) {
+  async function onCoverFile(file: File | undefined) {
     if (!file) {
       return;
     }
@@ -304,11 +380,14 @@ export function ArticleEditor() {
       }
       return preview;
     });
-    update("coverMode", mode);
     setCoverUploading(true);
     try {
+      const previous = draftRef.current.imageKey;
       const uploaded = await uploadFile(file);
-      update("coverKey", uploaded.key);
+      if (previous && previous !== uploaded.key) {
+        await deleteObject(previous).catch(() => undefined);
+      }
+      update("imageKey", uploaded.key);
     } catch (error) {
       setCoverError(
         error instanceof Error ? error.message : "Could not upload that photo.",
@@ -318,73 +397,104 @@ export function ArticleEditor() {
     }
   }
 
-  async function addFiles(list: FileList | File[]) {
-    setFileError(null);
-    const incoming = Array.from(list);
-    const tooLarge = incoming.find((file) => file.size > MAX_FILE_BYTES);
-    if (tooLarge) {
-      setFileError("Files need to be 200 MB or smaller.");
-    }
-    for (const file of incoming) {
-      if (file.size > MAX_FILE_BYTES) {
-        continue;
+  async function removeCover() {
+    const key = draftRef.current.imageKey;
+    setCoverError(null);
+    if (key) {
+      try {
+        await deleteObject(key);
+      } catch (error) {
+        setCoverError(
+          error instanceof Error
+            ? error.message
+            : "Could not delete that photo.",
+        );
+        return;
       }
-      const id = crypto.randomUUID();
-      const controller = new AbortController();
-      uploads.current.set(id, controller);
-      const nextFile: ArticleFile = {
-        id,
-        name: file.name,
-        size: file.size,
-        loaded: 0,
-        contentType: file.type || "application/octet-stream",
-        key: null,
+    }
+    setCoverPreview((current) => {
+      if (current?.startsWith("blob:")) {
+        URL.revokeObjectURL(current);
+      }
+      return null;
+    });
+    update("imageKey", null);
+  }
+
+  async function onArticleFile(file: File | undefined) {
+    if (!file) {
+      return;
+    }
+    setFileError(null);
+    if (file.size > MAX_FILE_BYTES) {
+      setFileError("Files need to be 200 MB or smaller.");
+      return;
+    }
+    const previous = fileRef.current?.key ?? null;
+    const id = crypto.randomUUID();
+    const controller = new AbortController();
+    uploads.current.set(id, controller);
+    const nextFile: ArticleFile = {
+      id,
+      name: file.name,
+      size: file.size,
+      loaded: 0,
+      contentType: file.type || "application/octet-stream",
+      key: null,
+      error: null,
+    };
+    fileRef.current = nextFile;
+    setArticleFile(nextFile);
+    try {
+      const uploaded = await uploadFile(file, {
+        signal: controller.signal,
+        onProgress: (loaded, total) => {
+          setArticleFile((current) =>
+            current?.id === id ? { ...current, loaded, size: total } : current,
+          );
+        },
+      });
+      if (previous && previous !== uploaded.key) {
+        await deleteObject(previous).catch(() => undefined);
+      }
+      const saved: ArticleFile = {
+        ...nextFile,
+        key: uploaded.key,
+        loaded: file.size,
         error: null,
       };
-      setFiles((current) => [...current, nextFile]);
-      try {
-        const uploaded = await uploadFile(file, {
-          signal: controller.signal,
-          onProgress: (loaded, total) => {
-            setFiles((current) =>
-              current.map((item) =>
-                item.id === id ? { ...item, loaded, size: total } : item,
-              ),
-            );
-          },
-        });
-        setFiles((current) =>
-          current.map((item) =>
-            item.id === id
-              ? { ...item, key: uploaded.key, loaded: file.size, error: null }
-              : item,
-          ),
-        );
-      } catch (error) {
-        if (controller.signal.aborted) {
-          setFiles((current) => current.filter((item) => item.id !== id));
-          continue;
-        }
-        setFiles((current) =>
-          current.map((item) =>
-            item.id === id
-              ? {
-                  ...item,
-                  error:
-                    error instanceof Error
-                      ? error.message
-                      : "Could not upload that file.",
-                }
-              : item,
-          ),
-        );
-      } finally {
-        uploads.current.delete(id);
+      fileRef.current = saved;
+      setArticleFile(saved);
+      setDraft((current) => ({
+        ...current,
+        fileKey: uploaded.key,
+        fileName: file.name,
+        fileSize: file.size,
+        fileContentType: saved.contentType,
+      }));
+    } catch (error) {
+      if (controller.signal.aborted) {
+        return;
       }
+      const failed: ArticleFile = {
+        ...nextFile,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Could not upload that file.",
+      };
+      fileRef.current = failed;
+      setArticleFile(failed);
+    } finally {
+      uploads.current.delete(id);
     }
   }
 
-  async function removeFile(file: ArticleFile) {
+  async function removeFile() {
+    const file = fileRef.current;
+    if (!file) {
+      return;
+    }
     uploads.current.get(file.id)?.abort();
     setFileError(null);
     if (file.key) {
@@ -392,16 +502,27 @@ export function ArticleEditor() {
         await deleteObject(file.key);
       } catch (error) {
         setFileError(
-          error instanceof Error ? error.message : "Could not delete that file.",
+          error instanceof Error
+            ? error.message
+            : "Could not delete that file.",
         );
         return;
       }
     }
-    setFiles((current) => current.filter((item) => item.id !== file.id));
+    fileRef.current = null;
+    setArticleFile(null);
+    setDraft((current) => ({
+      ...current,
+      fileKey: null,
+      fileName: null,
+      fileSize: 0,
+      fileContentType: null,
+    }));
   }
 
-  async function downloadFile(file: ArticleFile) {
-    if (!file.key) {
+  async function downloadFile() {
+    const file = fileRef.current;
+    if (!file?.key) {
       return;
     }
     setFileError(null);
@@ -409,22 +530,25 @@ export function ArticleEditor() {
       await downloadObject(file.key);
     } catch (error) {
       setFileError(
-        error instanceof Error ? error.message : "Could not download that file.",
+        error instanceof Error
+          ? error.message
+          : "Could not download that file.",
       );
     }
   }
 
-  const speaker =
-    SPEAKERS.find((item) => item.name === draft.speaker) ?? SPEAKERS[0];
-  const seriesItems = ARTICLE_SERIES.map((series) => ({
-    label: series,
-    value: series,
-  }));
+  const seriesItems = [
+    { label: "No series", value: "none" },
+    ...ARTICLE_SERIES.map((series) => ({ label: series, value: series })),
+  ];
+  const statusLabel = ARTICLE_STATUSES.find(
+    (item) => item.value === draft.articleStatus,
+  )?.label;
 
   return (
-    <div className="flex flex-1 flex-col bg-background">
+    <div className="flex flex-1 flex-col bg-card [--editor-bg:color-mix(in_oklab,var(--background)_45%,white)]">
       <style>{articleBodyCss}</style>
-      <header className="sticky top-0 z-10 flex flex-col gap-3 bg-background/95 px-4 py-3 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <header className="sticky top-0 z-10 flex flex-col gap-3 bg-card/95 px-4 py-3 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
           <Link
             href="/resources"
@@ -433,202 +557,140 @@ export function ArticleEditor() {
             Articles
           </Link>
           <ChevronRightIcon className="size-3.5 text-muted-foreground" />
-          <span className="font-medium">New article</span>
-          <span className="text-muted-foreground">
-            {draft.status === "published" ? "Published" : "Draft"} · saved{" "}
-            {showSavedTime ? relativeTime(draft.savedAt) : "just now"}
+          <span className="font-medium">
+            {article ? "Edit article" : "New article"}
           </span>
+          <span className="text-muted-foreground">
+            {statusLabel ? `${statusLabel} · ` : null}
+            saved {showSavedTime ? relativeTime(draft.savedAt) : "just now"}
+          </span>
+          {saveError ? (
+            <span className="text-destructive" role="alert">
+              {saveError}
+            </span>
+          ) : null}
         </div>
         <div className="flex items-center gap-2">
           <Button
             type="button"
             variant="outline"
             className="bg-card"
-            onClick={() => setPreview((current) => !current)}
+            disabled={saving}
+            onClick={() => void saveDraft()}
           >
-            {preview ? "Edit" : "Preview"}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="bg-card"
-            onClick={() => persist({ status: "draft" })}
-          >
-            Save draft
+            Save as draft
           </Button>
           <Button
             type="button"
             className="px-4 font-semibold tracking-wide uppercase"
-            onClick={() => persist({ status: "published" })}
+            disabled={saving || draft.articleStatus === "published"}
+            onClick={() => void publish()}
           >
-            Publish
+            {draft.articleStatus === "published" ? "Published" : "Publish"}
           </Button>
+          {draft.articleStatus === "published" ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="bg-card"
+              disabled={saving}
+              onClick={() => void unpublish()}
+            >
+              Unpublish
+            </Button>
+          ) : null}
         </div>
       </header>
 
       <div className="grid items-start gap-5 px-4 pb-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="flex flex-col gap-5">
-          <Card className="shadow-sm">
-            <CardContent className="flex flex-col gap-4">
-              <p className="text-[0.7rem] font-bold tracking-[0.16em] text-primary uppercase">
-                {serviceEyebrow(draft.serviceDate)}
-              </p>
+        <Card className="rounded-md bg-(--editor-bg)">
+          <CardContent className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="article-title">Title</Label>
               <input
+                id="article-title"
                 value={draft.title}
-                onChange={(event) => onTitleChange(event.target.value)}
-                readOnly={preview}
-                aria-label="Title"
-                className="w-full bg-transparent text-3xl font-bold tracking-tight outline-none md:text-4xl"
+                onChange={(event) => update("title", event.target.value)}
+                placeholder="Article title"
+                className="w-full rounded-md border border-input bg-white px-3 py-2 text-2xl font-bold tracking-tight outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-3xl"
               />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="article-subtitle">Subtitle</Label>
               <input
+                id="article-subtitle"
                 value={draft.subtitle}
                 onChange={(event) => update("subtitle", event.target.value)}
-                readOnly={preview}
-                aria-label="Subtitle"
-                className="w-full bg-transparent text-sm text-muted-foreground outline-none"
+                placeholder="Short line under the title"
+                className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               />
-              {ready ? (
-                <ArticleBody
-                  initialHtml={initialHtml}
-                  editable={!preview}
-                  onChange={onBodyChange}
-                />
-              ) : (
-                <div className="min-h-48" />
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">
-                Watch & listen
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <p className="text-sm text-muted-foreground">
-                Embed the service recording so members can stream it on the
-                sermon page.
-              </p>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="video-link">Video link</Label>
-                  <Input
-                    id="video-link"
-                    value={draft.videoUrl}
-                    readOnly={preview}
-                    placeholder="https://youtube.com/..."
-                    onChange={(event) => update("videoUrl", event.target.value)}
-                    className="h-10 bg-card"
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="podcast-link">
-                    Podcast / audio link{" "}
-                    <span className="font-normal text-muted-foreground">
-                      optional
-                    </span>
-                  </Label>
-                  <Input
-                    id="podcast-link"
-                    value={draft.podcastUrl}
-                    readOnly={preview}
-                    placeholder="Spotify or Apple Podcasts URL"
-                    onChange={(event) =>
-                      update("podcastUrl", event.target.value)
-                    }
-                    className="h-10 bg-card"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label>Body</Label>
+              <ArticleBody
+                initialHtml={article?.body || EMPTY_BODY}
+                editable
+                onChange={onBodyChange}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         <aside className="flex flex-col gap-5">
-          <Card className="shadow-sm">
+          <Card className="rounded-md bg-(--editor-bg)">
             <CardHeader>
               <CardTitle className="text-base font-semibold">Cover</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
-              <div className="relative flex aspect-square flex-col items-center justify-center overflow-hidden rounded-lg bg-muted px-6 text-center">
-                {coverPreview && draft.coverMode !== "generated" ? (
+              <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-md border border-input bg-muted/40">
+                {coverPreview ? (
                   <img
                     src={coverPreview}
                     alt=""
-                    className={cn(
-                      "absolute inset-0 size-full object-cover",
-                      draft.coverMode === "background" && "opacity-45",
-                    )}
+                    className="absolute inset-0 size-full object-cover"
                   />
-                ) : null}
-                {draft.coverMode === "custom" && coverPreview ? null : (
-                  <div className="relative z-10 flex flex-col items-center gap-4">
-                    <p className="text-[0.65rem] font-bold tracking-[0.14em] text-primary uppercase">
-                      {serviceEyebrow(draft.serviceDate)}
-                    </p>
-                    <p className="max-w-[12rem] text-3xl leading-[0.95] font-bold tracking-tight uppercase">
-                      {draft.title || "Untitled"}
-                    </p>
-                  </div>
+                ) : (
+                  <p className="px-6 text-center text-sm text-muted-foreground">
+                    No cover image
+                  </p>
                 )}
-                <Image
-                  src="/tnc-logo-v2-transparent.png"
-                  alt=""
-                  width={56}
-                  height={56}
-                  className="absolute bottom-4 left-4 z-10 size-12 object-contain"
-                />
               </div>
-              {preview ? null : (
-                <div className="grid grid-cols-2 gap-2">
+              <div className="flex gap-2">
                   <input
-                    ref={backgroundInputRef}
+                    ref={coverInputRef}
                     type="file"
                     accept="image/*"
-                    aria-label="Background photo"
+                    aria-label="Cover image"
                     className="sr-only"
                     onChange={(event) => {
-                      void onCoverFile(
-                        event.target.files?.[0],
-                        "background",
-                      );
-                      event.target.value = "";
-                    }}
-                  />
-                  <input
-                    ref={customInputRef}
-                    type="file"
-                    accept="image/*"
-                    aria-label="Custom cover"
-                    className="sr-only"
-                    onChange={(event) => {
-                      void onCoverFile(event.target.files?.[0], "custom");
+                      void onCoverFile(event.target.files?.[0]);
                       event.target.value = "";
                     }}
                   />
                   <Button
                     type="button"
                     variant="outline"
+                    className="flex-1"
                     disabled={coverUploading}
-                    onClick={() => backgroundInputRef.current?.click()}
+                    onClick={() => coverInputRef.current?.click()}
                   >
-                    Add background photo
+                    {draft.imageKey ? "Replace image" : "Upload image"}
                   </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={coverUploading}
-                    onClick={() => customInputRef.current?.click()}
-                  >
-                    Upload custom
-                  </Button>
+                  {draft.imageKey ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={coverUploading}
+                      onClick={() => void removeCover()}
+                    >
+                      Remove
+                    </Button>
+                  ) : null}
                 </div>
-              )}
               <p className="text-xs text-muted-foreground">
                 {coverUploading
                   ? "Uploading cover photo..."
-                  : "Generated from the title and service date in the True North style."}
+                  : "Stored as the article image."}
               </p>
               {coverError ? (
                 <p className="text-sm text-destructive" role="alert">
@@ -638,173 +700,164 @@ export function ArticleEditor() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm">
+          <Card className="rounded-md bg-(--editor-bg)">
             <CardHeader>
               <CardTitle className="text-base font-semibold">Details</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
-                <Label>Speaker</Label>
+                <Label>Type</Label>
                 <Select
-                  items={SPEAKERS.map((item) => ({
-                    label: item.name,
-                    value: item.name,
-                  }))}
-                  value={draft.speaker}
+                  items={ARTICLE_TYPES.map((item) => ({ ...item }))}
+                  value={draft.type}
                   onValueChange={(value) => {
-                    if (typeof value === "string") {
-                      update("speaker", value);
+                    if (isArticleType(value)) {
+                      update("type", value);
                     }
                   }}
                 >
-                  <SelectTrigger className="h-10 w-full" disabled={preview}>
-                    <span className="flex items-center gap-2">
-                      <Avatar size="sm">
-                        <AvatarFallback className="bg-primary text-[0.65rem] text-primary-foreground">
-                          {speaker.initials}
-                        </AvatarFallback>
-                      </Avatar>
-                      <SelectValue />
-                    </span>
+                  <SelectTrigger
+                    className={cn("h-10 w-full", fieldClass)}
+                  >
+                    <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
-                      {SPEAKERS.map((item) => (
-                        <SelectItem key={item.name} value={item.name}>
-                          {item.name}
+                      {ARTICLE_TYPES.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
                         </SelectItem>
                       ))}
                     </SelectGroup>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="service-date">Service date</Label>
-                  <label className="relative">
-                    <span className="flex h-10 items-center rounded-md border border-input px-2.5 text-sm">
-                      {serviceDateLabel(draft.serviceDate)}
-                    </span>
-                    <input
-                      id="service-date"
-                      type="date"
-                      value={draft.serviceDate}
-                      readOnly={preview}
-                      onChange={(event) =>
-                        update("serviceDate", event.target.value)
-                      }
-                      className="absolute inset-0 cursor-pointer opacity-0"
-                    />
-                  </label>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label>Series</Label>
-                  <Select
-                    items={seriesItems}
-                    value={draft.series}
-                    onValueChange={(value) => {
-                      if (typeof value === "string") {
-                        update("series", value);
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="h-10 w-full" disabled={preview}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {seriesItems.map((item) => (
-                          <SelectItem key={item.value} value={item.value}>
-                            {item.label}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="article-verse">Verse</Label>
+                <Input
+                  id="article-verse"
+                  value={draft.verse}
+                  placeholder="Matthew 28:20"
+                  onChange={(event) => update("verse", event.target.value)}
+                  className={cn("h-10", fieldClass)}
+                />
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="scripture-add">Scripture</Label>
-                <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-md border border-input px-2 py-1.5">
-                  {draft.scriptures.map((reference) => (
+                <Label htmlFor="article-tag">Tags</Label>
+                <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-md border border-input bg-white px-2 py-1.5 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
+                  {draft.tags.map((tag) => (
                     <span
-                      key={reference}
-                      className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs font-medium"
+                      key={tag}
+                      className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2 py-0.5 text-xs font-medium"
                     >
-                      {reference}
-                      {preview ? null : (
-                        <button
-                          type="button"
-                          className="text-muted-foreground hover:text-foreground"
-                          aria-label={`Remove ${reference}`}
-                          onClick={() =>
-                            update(
-                              "scriptures",
-                              draft.scriptures.filter(
-                                (item) => item !== reference,
-                              ),
-                            )
-                          }
-                        >
-                          <XIcon className="size-3" />
-                        </button>
-                      )}
+                      {tag}
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground"
+                        aria-label={`Remove ${tag}`}
+                        onClick={() =>
+                          update(
+                            "tags",
+                            draft.tags.filter((item) => item !== tag),
+                          )
+                        }
+                      >
+                        <XIcon className="size-3" />
+                      </button>
                     </span>
                   ))}
-                  {preview ? null : (
-                    <input
-                      id="scripture-add"
-                      value={scriptureDraft}
-                      onChange={(event) => setScriptureDraft(event.target.value)}
+                  <input
+                    id="article-tag"
+                      value={tagDraft}
+                      onChange={(event) => setTagDraft(event.target.value)}
                       onKeyDown={(event) => {
                         if (event.key === "Enter") {
                           event.preventDefault();
-                          addScripture();
+                          addTag();
                         }
                       }}
-                      onBlur={addScripture}
-                      placeholder="Add..."
-                      className="h-6 min-w-16 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                    />
-                  )}
+                      onBlur={addTag}
+                      placeholder="Add a tag"
+                    className="h-6 min-w-16 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                  />
                 </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label>Series</Label>
+                <Select
+                  items={seriesItems}
+                  value={draft.seriesId}
+                  onValueChange={(value) => {
+                    if (typeof value !== "string") {
+                      return;
+                    }
+                    update("seriesId", value);
+                  }}
+                >
+                  <SelectTrigger
+                    className={cn("h-10 w-full", fieldClass)}
+                  >
+                    <SelectValue placeholder="Select series" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {seriesItems.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label>Status</Label>
+                <Select
+                  items={ARTICLE_STATUSES.map((item) => ({ ...item }))}
+                  value={draft.articleStatus}
+                  onValueChange={(value) => {
+                    if (isArticleStatus(value)) {
+                      update("articleStatus", value);
+                    }
+                  }}
+                >
+                  <SelectTrigger
+                    className={cn("h-10 w-full", fieldClass)}
+                  >
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {ARTICLE_STATUSES.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm">
+          <Card className="rounded-md bg-(--editor-bg)">
             <CardHeader>
-              <CardTitle className="text-base font-semibold">Downloads</CardTitle>
-              <CardAction>
-                <Label className="text-xs font-normal text-muted-foreground">
-                  Members can download
-                  <Switch
-                    checked={draft.membersCanDownload}
-                    disabled={preview}
-                    onCheckedChange={(checked) =>
-                      update("membersCanDownload", checked)
-                    }
-                    aria-label="Members can download"
-                  />
-                </Label>
-              </CardAction>
+              <CardTitle className="text-base font-semibold">File</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
-              {files.map((file) => (
+              {articleFile ? (
                 <FileRow
-                  key={file.id}
-                  file={file}
-                  onDownload={() => void downloadFile(file)}
-                  onRemove={() => void removeFile(file)}
+                  file={articleFile}
+                  onDownload={() => void downloadFile()}
+                  onRemove={() => void removeFile()}
                 />
-              ))}
-              {preview ? null : (
-                <label
+              ) : null}
+              <label
                   className={cn(
-                    "flex cursor-pointer flex-col items-center gap-1 rounded-lg border border-dashed px-4 py-6 text-center",
+                    "flex cursor-pointer flex-col items-center gap-1 rounded-md border border-dashed px-4 py-6 text-center",
                     dragging
                       ? "border-primary bg-muted/60"
-                      : "border-border bg-card",
+                      : "border-input bg-muted/40",
                   )}
                   onDragOver={(event) => {
                     event.preventDefault();
@@ -814,107 +867,32 @@ export function ArticleEditor() {
                   onDrop={(event) => {
                     event.preventDefault();
                     setDragging(false);
-                    void addFiles(event.dataTransfer.files);
+                    void onArticleFile(event.dataTransfer.files[0]);
                   }}
                 >
                   <UploadIcon className="size-4 text-primary" />
                   <span className="text-sm font-medium">
-                    Drop files or{" "}
+                    {articleFile ? "Replace file or " : "Drop a file or "}
                     <span className="text-primary underline">browse</span>
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    Notes, slides, audio, study guides · up to 200 MB
+                    Notes, slides, audio, or a study guide · up to 200 MB
                   </span>
                   <input
                     ref={fileInputRef}
                     type="file"
-                    multiple
                     className="sr-only"
                     onChange={(event) => {
-                      if (event.target.files) {
-                        void addFiles(event.target.files);
-                      }
+                      void onArticleFile(event.target.files?.[0]);
                       event.target.value = "";
                     }}
                   />
                 </label>
-              )}
               {fileError ? (
                 <p className="text-sm text-destructive" role="alert">
                   {fileError}
                 </p>
               ) : null}
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">
-                Publishing
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3 text-sm">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Visibility</span>
-                <Select
-                  items={VISIBILITY.map((item) => ({ ...item }))}
-                  value={draft.visibility}
-                  onValueChange={(value) => {
-                    if (typeof value === "string") {
-                      update("visibility", value);
-                    }
-                  }}
-                >
-                  <SelectTrigger
-                    className="h-8 w-auto border-0 bg-transparent shadow-none"
-                    disabled={preview}
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent align="end">
-                    <SelectGroup>
-                      {VISIBILITY.map((item) => (
-                        <SelectItem key={item.value} value={item.value}>
-                          {item.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-              <label className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Publish</span>
-                <span className="relative font-medium">
-                  {publishLabel(draft.publishAt)}
-                  <input
-                    type="datetime-local"
-                    value={draft.publishAt}
-                    readOnly={preview}
-                    aria-label="Publish time"
-                    onChange={(event) => update("publishAt", event.target.value)}
-                    className="absolute inset-0 cursor-pointer opacity-0"
-                  />
-                </span>
-              </label>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Page URL</span>
-                <span className="flex min-w-0 items-center justify-end text-primary">
-                  <span>/sermons/</span>
-                  <input
-                    aria-label="Page URL"
-                    value={draft.slug}
-                    readOnly={preview}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        slugTouched: true,
-                        slug: sanitizeSlug(event.target.value),
-                      }))
-                    }
-                    className="w-36 min-w-0 bg-transparent text-right outline-none"
-                  />
-                </span>
-              </div>
             </CardContent>
           </Card>
         </aside>
@@ -932,7 +910,7 @@ function ArticleBody({
   editable: boolean;
   onChange: (html: string) => void;
 }) {
-  const onChangeRef = React.useRef(onChange);
+  const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
   const editor = useEditor({
@@ -947,8 +925,7 @@ function ArticleBody({
     ],
     editorProps: {
       attributes: {
-        class:
-          "article-body min-h-48 text-[15px] leading-relaxed outline-none",
+        class: "article-body min-h-48 text-[15px] leading-relaxed outline-none",
         "aria-label": "Article body",
       },
     },
@@ -957,7 +934,7 @@ function ArticleBody({
     },
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!editor || editor.isEditable === editable) {
       return;
     }
@@ -991,12 +968,12 @@ function ArticleBody({
   }
 
   return (
-    <>
+    <div className="overflow-hidden rounded-md border border-input bg-white focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
       {editable ? (
-        <div className="flex flex-wrap items-center gap-1 rounded-lg bg-muted/50 p-1">
+        <div className="flex flex-wrap items-center gap-1 border-b border-input bg-(--editor-bg) p-1">
           <select
             aria-label="Paragraph style"
-            className="h-8 rounded-md bg-transparent px-2 text-sm outline-none"
+            className="h-8 rounded-md border border-input bg-white px-2 text-sm outline-none"
             value={active?.heading ? "h2" : "p"}
             disabled={!editor}
             onChange={(event) => {
@@ -1020,7 +997,9 @@ function ArticleBody({
           <ToolbarButton
             label="Bold"
             active={active?.bold}
-            onClick={() => run(() => editor?.chain().focus().toggleBold().run())}
+            onClick={() =>
+              run(() => editor?.chain().focus().toggleBold().run())
+            }
           >
             <span className="font-bold">B</span>
           </ToolbarButton>
@@ -1103,7 +1082,7 @@ function ArticleBody({
             type="button"
             variant="outline"
             size="sm"
-            className="ml-auto bg-card"
+            className="ml-auto border-transparent bg-primary/10 font-semibold tracking-wide text-primary uppercase hover:bg-primary/15 hover:text-primary"
             disabled={!editor}
             onMouseDown={(event) => event.preventDefault()}
             onClick={() =>
@@ -1123,15 +1102,17 @@ function ArticleBody({
           </Button>
         </div>
       ) : null}
-      {editor ? (
-        <EditorContent editor={editor} />
-      ) : (
-        <div
-          className="article-body min-h-48 text-[15px] leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: initialHtml }}
-        />
-      )}
-    </>
+      <div className="px-3 py-2">
+        {editor ? (
+          <EditorContent editor={editor} />
+        ) : (
+          <div
+            className="article-body min-h-48 text-[15px] leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: initialHtml }}
+          />
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -1153,7 +1134,7 @@ function ToolbarButton({
       size="sm"
       aria-label={label}
       aria-pressed={active}
-      className={cn("min-w-8 px-2", active && "bg-card")}
+      className={cn("min-w-8 px-2", active && "bg-muted")}
       onMouseDown={(event) => event.preventDefault()}
       onClick={onClick}
     >
@@ -1173,16 +1154,18 @@ function FileRow({
 }) {
   const uploading = file.key === null && !file.error;
   const progress =
-    file.size > 0 ? Math.min(100, Math.round((file.loaded / file.size) * 100)) : 0;
+    file.size > 0
+      ? Math.min(100, Math.round((file.loaded / file.size) * 100))
+      : 0;
 
   return (
-    <div className="flex items-start gap-3 rounded-lg border px-3 py-2.5">
+    <div className="flex items-start gap-3 rounded-md border border-input bg-muted/40 px-3 py-2.5">
       <span
         className={cn(
           "mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md text-[0.6rem] font-bold",
           fileKind(file) === "PDF"
             ? "bg-primary text-primary-foreground"
-            : "bg-muted text-muted-foreground",
+            : "bg-background text-muted-foreground",
         )}
       >
         {fileKind(file)}
@@ -1197,7 +1180,7 @@ function FileRow({
               : formatBytes(file.size)}
         </p>
         {uploading ? (
-          <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-muted">
+          <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-background">
             <div
               className="h-full bg-primary"
               style={{ width: `${progress}%` }}
@@ -1229,49 +1212,6 @@ function FileRow({
   );
 }
 
-function serviceDateLabel(isoDate: string): string {
-  const date = new Date(`${isoDate}T12:00:00`);
-  if (Number.isNaN(date.getTime())) {
-    return "Set a date";
-  }
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function serviceEyebrow(isoDate: string): string {
-  const date = new Date(`${isoDate}T12:00:00`);
-  if (Number.isNaN(date.getTime())) {
-    return "Service date";
-  }
-  const weekday = date.toLocaleDateString("en-US", { weekday: "long" });
-  const rest = date.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-  return `${weekday} | ${rest}`;
-}
-
-function publishLabel(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "Set a time";
-  }
-  const day = date.toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
-  const time = date.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-  return `${day} · ${time}`;
-}
-
 function relativeTime(iso: string): string {
   const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
   if (!Number.isFinite(minutes) || minutes < 1) {
@@ -1282,18 +1222,6 @@ function relativeTime(iso: string): string {
   }
   const hours = Math.round(minutes / 60);
   return `${hours} hr ago`;
-}
-
-function slugify(value: string): string {
-  return sanitizeSlug(value).replace(/-+$/g, "") || "untitled";
-}
-
-function sanitizeSlug(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9-]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-/, "");
 }
 
 function fileKind(file: ArticleFile): string {
@@ -1318,62 +1246,30 @@ function formatBytes(size: number): string {
   return `${mb >= 10 ? Math.round(mb) : mb.toFixed(1)} MB`;
 }
 
-function readDraft(): ArticleDraft | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return null;
-    }
-    const parsed = JSON.parse(raw) as Partial<ArticleDraft>;
-    if (typeof parsed.title !== "string" || !Array.isArray(parsed.scriptures)) {
-      return null;
-    }
-    return {
-      ...initialDraft,
-      ...parsed,
-      scriptures: parsed.scriptures.filter(
-        (item): item is string => typeof item === "string",
-      ),
-      files: Array.isArray(parsed.files)
-        ? parsed.files.flatMap((file) => {
-            if (
-              !file ||
-              typeof file !== "object" ||
-              typeof file.id !== "string" ||
-              typeof file.name !== "string" ||
-              typeof file.key !== "string"
-            ) {
-              return [];
-            }
-            return [
-              {
-                id: file.id,
-                name: file.name,
-                size: typeof file.size === "number" ? file.size : 0,
-                contentType:
-                  typeof file.contentType === "string"
-                    ? file.contentType
-                    : "application/octet-stream",
-                key: file.key,
-              },
-            ];
-          })
-        : [],
-    };
-  } catch {
-    return null;
-  }
+function isArticleType(value: unknown): value is ArticleType {
+  return ARTICLE_TYPES.some((item) => item.value === value);
+}
+
+function isArticleStatus(value: unknown): value is ArticleStatus {
+  return ARTICLE_STATUSES.some((item) => item.value === value);
 }
 
 const articleBodyCss = `
 .article-body p { margin: 0.85rem 0; }
+.article-body > p:only-child:has(> br.ProseMirror-trailingBreak:only-child)::before {
+  content: "Write the article";
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--muted-foreground);
+}
 .article-body h2 { margin: 1.2rem 0 0.35rem; font-size: 1.125rem; font-weight: 700; }
 .article-body ul { margin: 0.75rem 0; padding-left: 1.25rem; list-style: disc; }
 .article-body a { color: var(--primary); text-decoration: underline; }
 .article-body blockquote {
   margin: 1rem 0;
-  border-radius: 0.75rem;
-  background: color-mix(in oklch, var(--muted) 70%, white);
+  border-radius: 0.5rem;
+  background: color-mix(in oklab, var(--muted) 30%, white);
   padding: 0.95rem 1rem;
 }
 .article-body blockquote p { margin: 0; font-style: italic; }
