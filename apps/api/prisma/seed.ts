@@ -22,6 +22,12 @@ async function main(): Promise<void> {
       [randomUUID(), user.username, passwordHash],
     );
   }
+  await client.query(
+    `INSERT INTO roles (id, name, description, "updatedAt")
+     VALUES ($1, 'Member', '', NOW())
+     ON CONFLICT (name) DO NOTHING`,
+    [randomUUID()],
+  );
 }
 
 function databaseUrl(): string {
