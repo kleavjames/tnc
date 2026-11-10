@@ -105,28 +105,28 @@ describe('parseMemberUpdate', () => {
     });
   });
 
-  it('ignores approved so an update cannot approve a member', () => {
-    expect(parseMemberUpdate({ lastName: 'Cruz', approved: true })).toEqual({
+  it('ignores status so an update cannot approve a member', () => {
+    expect(parseMemberUpdate({ lastName: 'Cruz', status: 'approved' })).toEqual({
       lastName: 'Cruz',
     });
   });
 
   it('rejects an empty update', () => {
-    expect(() => parseMemberUpdate({ approved: true })).toThrow(
+    expect(() => parseMemberUpdate({ status: 'approved' })).toThrow(
       BadRequestException,
     );
   });
 });
 
 describe('parseMemberFilters', () => {
-  it('reads approved, branch and search', () => {
+  it('reads status, branch and search', () => {
     expect(
-      parseMemberFilters({ approved: 'false', branchId: 'b1', search: ' mar ' }),
-    ).toEqual({ approved: false, branchId: 'b1', search: 'mar' });
+      parseMemberFilters({ status: 'pending', branchId: 'b1', search: ' mar ' }),
+    ).toEqual({ status: 'pending', branchId: 'b1', search: 'mar' });
   });
 
-  it('rejects a bad approved value', () => {
-    expect(() => parseMemberFilters({ approved: 'maybe' })).toThrow(
+  it('rejects a bad status value', () => {
+    expect(() => parseMemberFilters({ status: 'maybe' })).toThrow(
       BadRequestException,
     );
   });

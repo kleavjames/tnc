@@ -117,6 +117,12 @@ enum Weekday {
   saturday
 }
 
+enum MemberStatus {
+  pending
+  approved
+  reject
+}
+
 /// Named assignment such as Member. The default "Member" row is seeded, not a column default.
 model Role {
   id          String   @id @default(cuid())
@@ -174,8 +180,8 @@ model Member {
   branchId       String
   branch         ChurchBranch    @relation(fields: [branchId], references: [id])
   isDgroupLeader Boolean         @default(false)
-  /// Admin decision after registration. New members stay unapproved until an admin sets this.
-  approved       Boolean         @default(false)
+  /// Admin decision after registration. New members stay pending until an admin approves them.
+  status         MemberStatus    @default(pending)
   dgroupMeetings DgroupMeeting[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt

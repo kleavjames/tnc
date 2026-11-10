@@ -1,16 +1,12 @@
 import type { Metadata } from "next";
-import { PlaceholderPage } from "../../../components/placeholder-page";
+import { MembersView } from "../../../components/members-view";
+import { listMembers } from "../../../lib/members";
 
 export const metadata: Metadata = {
   title: "Members",
 };
 
-export default function MembersPage() {
-  return (
-    <PlaceholderPage
-      eyebrow="Content"
-      title="Members"
-      description="Manage the members of the church."
-    />
-  );
+export default async function MembersPage() {
+  const members = await listMembers("approved");
+  return <MembersView members={members} />;
 }

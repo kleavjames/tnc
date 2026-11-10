@@ -25,7 +25,7 @@ const memberSelect = {
   gender: true,
   civilStatus: true,
   isDgroupLeader: true,
-  approved: true,
+  status: true,
   createdAt: true,
   branch: { select: { id: true, name: true, branch: true } },
   roles: { select: { id: true, name: true } },
@@ -41,11 +41,11 @@ type MemberRow = Prisma.MemberGetPayload<{ select: typeof memberSelect }>;
 export class MembersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(query: { approved?: unknown; branchId?: unknown; search?: unknown }) {
+  async list(query: { status?: unknown; branchId?: unknown; search?: unknown }) {
     const filters = parseMemberFilters(query);
     const where: Prisma.MemberWhereInput = {};
-    if (filters.approved !== undefined) {
-      where.approved = filters.approved;
+    if (filters.status) {
+      where.status = filters.status;
     }
     if (filters.branchId) {
       where.branchId = filters.branchId;
@@ -80,7 +80,7 @@ export class MembersService {
     return toMember(member);
   }
 
-  /** Public registration. New members are always unapproved. */
+  /** Public registration. New members are always pending. */
   async create(body: unknown) {
     const { dgroupMeetings, ...profile } = parseMemberCreate(body);
     await this.requireBranch(profile.branchId);
@@ -93,12 +93,12 @@ export class MembersService {
     const member = await this.prisma.member.create({
       data: {
         ...profile,
-        approved: false,
+        status: 'pending',
         roles: role ? { connect: { id: role.id } } : undefined,
         dgroupMeetings:
           dgroupMeetings.length > 0 ? { create: dgroupMeetings } : undefined,
       },
-      select: { id: true, membershipId: true, approved: true },
+      select: { id: true, membershipId: true, status: true },
     });
     return member;
   }
@@ -121,11 +121,32 @@ export class MembersService {
   }
 
   approve(id: string) {
-    return this.setApproved(id, true);
+    return this.setStatus(id, 'approved');
   }
 
-  unapprove(id: string) {
-    return this.setApproved(id, false);
+  async reject(id: string) {
+    const member = await this.prisma.member.findUnique({
+      where: { id },
+      select: { id: true, dgroupMeetings: { select: { id: true } } },
+    });
+    if (!member) {
+      throw new NotFoundException('Member not found');
+    }
+
+    const meetingIds = member.dgroupMeetings.map((meeting) => meeting.id);
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.member.delete({ where: { id } });
+        if (meetingIds.length > 0) {
+          await tx.dgroupMeeting.deleteMany({
+            where: { id: { in: meetingIds }, members: { none: {} } },
+          });
+        }
+      });
+    } catch (error) {
+      throw mapMissing(error, 'Member not found');
+    }
+    return { deleted: true as const };
   }
 
   async remove(id: string) {
@@ -137,11 +158,11 @@ export class MembersService {
     return { deleted: true as const };
   }
 
-  private async setApproved(id: string, approved: boolean) {
+  private async setStatus(id: string, status: 'approved') {
     try {
       const member = await this.prisma.member.update({
         where: { id },
-        data: { approved },
+        data: { status },
         select: memberSelect,
       });
       return toMember(member);
