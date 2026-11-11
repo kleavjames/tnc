@@ -1,0 +1,151 @@
+[
+  {
+    "level": 1,
+    "name": "GLC 1",
+    "title": "Edify",
+    "description": "Grow together in a Discipleship Group",
+    "books": [
+      {
+        "number": 1,
+        "title": "One by One",
+        "sessions": [
+          { "number": 1, "title": "One Truth" },
+          { "number": 2, "title": "One Way" },
+          { "number": 3, "title": "One Proof" },
+          { "number": 4, "title": "One Promise" },
+          { "number": 5, "title": "One Pursuit" }
+        ]
+      },
+      {
+        "number": 2,
+        "title": "Spiritual Disciplines",
+        "sessions": [
+          { "number": 1, "title": "One Connection" },
+          { "number": 2, "title": "One Basis" },
+          { "number": 3, "title": "One Family" },
+          { "number": 4, "title": "One Blessing" },
+          { "number": 5, "title": "One Task" }
+        ]
+      },
+      {
+        "number": 3,
+        "title": "The Holy Spirit",
+        "sessions": [
+          { "number": 1, "title": "The Person And Works of the Holy Spirit" },
+          { "number": 2, "title": "The Gifts of the Holy Spirit" },
+          { "number": 3, "title": "Walking in the Spirit" }
+        ]
+      },
+      {
+        "number": 4,
+        "title": "TNC DNA",
+        "sessions": [
+          { "number": 1, "title": "Mission, Vision, Strategy" },
+          { "number": 2, "title": "Core Values" }
+        ]
+      }
+    ]
+  },
+  {
+    "level": 2,
+    "name": "GLC 2",
+    "title": "Equip",
+    "description": "Start leading a Discipleship Group",
+    "books": [
+      {
+        "number": 5,
+        "title": "DGroup 101",
+        "sessions": [
+          { "number": 1, "title": "Biblical Foundations for Dgroup Ministry" },
+          { "number": 2, "title": "Readiness and Roles of a DGroup Leader" },
+          { "number": 3, "title": "How to Start and Facilitate a DGroup" }
+        ]
+      },
+      {
+        "number": 6,
+        "title": "Basic Doctrines",
+        "sessions": [
+          { "number": 1, "title": "God's Word: The Bible" },
+          { "number": 2, "title": "God's Person and Nature" },
+          { "number": 3, "title": "Jesus: His Person & Works" },
+          { "number": 4, "title": "Salvation" },
+          { "number": 5, "title": "The Trinity" },
+          { "number": 6, "title": "Marriage and Gender" }
+        ]
+      },
+      {
+        "number": 7,
+        "title": "Family Life",
+        "sessions": [
+          { "number": 1, "title": "God's Design for the Family" },
+          { "number": 2, "title": "How to Influence Your Children" },
+          { "number": 3, "title": "Communicate to Connect" },
+          { "number": 4, "title": "What to Teach Your Children" },
+          { "number": 5, "title": "Roles of the Youth and Singles" }
+        ]
+      },
+      {
+        "number": 8,
+        "title": "Bible Survey",
+        "sessions": [
+          { "number": 1, "title": "The Importance of Bible Survey" },
+          { "number": 2, "title": "The Pentateuch" },
+          { "number": 3, "title": "Historical Books, Part 1" },
+          { "number": 4, "title": "Historical Books, Part 2" },
+          { "number": 5, "title": "The Wisdom Literature and Poetry" },
+          { "number": 6, "title": "Major Prophets" },
+          { "number": 7, "title": "Minor Prophets" },
+          { "number": 8, "title": "The New Testament Gospels" },
+          { "number": 9, "title": "The Acts of the Apostles" },
+          { "number": 10, "title": "The Pauline Epistles" },
+          { "number": 11, "title": "General Epistles" },
+          { "number": 12, "title": "Revelation" }
+        ]
+      }
+    ]
+  },
+  {
+    "level": 3,
+    "name": "GLC 3",
+    "title": "Empower",
+    "description": "Help others start their own Discipleship Group",
+    "books": [
+      {
+        "number": 9,
+        "title": "The Multiplier",
+        "sessions": [
+          { "number": 1, "title": "EMAD (MRI) – Every Member a Disciple" },
+          { "number": 2, "title": "The Spiritual Leader – Character" },
+          { "number": 3, "title": "The Spiritual Leader – Competence" },
+          { "number": 4, "title": "The Spiritual Leader – Chemistry" }
+        ]
+      },
+      {
+        "number": 10,
+        "title": "Reliability of the Bible",
+        "sessions": [
+          { "number": 1, "title": "Why We Believe the Bible" },
+          { "number": 2, "title": "The External & Internal Evidence" }
+        ]
+      },
+      {
+        "number": 11,
+        "title": "Spiritual Warfare",
+        "sessions": [
+          { "number": 1, "title": "The Realities of Spiritual Warfare" },
+          { "number": 2, "title": "Overcoming Strongholds" }
+        ]
+      },
+      {
+        "number": 12,
+        "title": "Leadership Skills",
+        "sessions": [
+          { "number": 1, "title": "Mentoring" },
+          { "number": 2, "title": "Coaching" },
+          { "number": 3, "title": "Biblical Counseling" },
+          { "number": 4, "title": "Conflict Management" }
+        ]
+      }
+    ]
+  }
+]
