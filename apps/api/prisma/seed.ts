@@ -34,7 +34,7 @@ async function main(): Promise<void> {
 async function seedChurchBranches(): Promise<void> {
   const path = join(
     dirname(fileURLToPath(import.meta.url)),
-    './data/churchBranches.json',
+    '../data/churchBranches.json',
   );
   const churchBranches = JSON.parse(await readFile(path, 'utf8')) as {
     name: string;
@@ -54,7 +54,7 @@ async function seedChurchBranches(): Promise<void> {
 
 /** Upsert the shared curriculum. Does not create member progress or delete sessions. */
 async function seedGlc(): Promise<void> {
-  const path = join(dirname(fileURLToPath(import.meta.url)), './data/glc.json');
+  const path = join(dirname(fileURLToPath(import.meta.url)), '../data/glc.json');
   const levels = JSON.parse(await readFile(path, 'utf8')) as GlcLevel[];
 
   for (const level of levels) {
