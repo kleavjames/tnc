@@ -18,9 +18,11 @@ import {
   TabsList,
   TabsTrigger,
 } from "@repo/ui/components/tabs";
+import { GlcMemberView } from "@/components/glc-member-view";
 import { MemberPersonalTab } from "@/components/member-personal-tab";
 import { labelize, memberName } from "@/lib/member-display";
 import { listChurchBranches } from "@/lib/church-branches";
+import { getGlcProgress } from "@/lib/glc";
 import { getMember, type Member } from "@/lib/members";
 
 export const metadata: Metadata = {
@@ -33,9 +35,10 @@ export default async function MemberPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [member, branches] = await Promise.all([
+  const [member, branches, progress] = await Promise.all([
     getMember(id),
     listChurchBranches(),
+    getGlcProgress(id),
   ]);
   if (!member) {
     notFound();
@@ -134,9 +137,7 @@ export default async function MemberPage({
           </TabsContent>
 
           <TabsContent value="glc">
-            <p className="rounded-md border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
-              This member has not started GLC.
-            </p>
+            <GlcMemberView memberId={member.id} progress={progress} />
           </TabsContent>
         </Tabs>
       </div>
