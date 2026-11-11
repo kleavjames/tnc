@@ -16,10 +16,19 @@ export type Member = {
   gender: "male" | "female";
   civilStatus: "single" | "married" | "widowed" | "separated";
   isDgroupLeader: boolean;
+  preTrueLife: boolean;
+  trueLife: boolean;
+  baptism: boolean;
   status: MemberStatus;
   createdAt: string;
   branch: { id: string; name: string; branch: string };
   roles: string[];
+  dgroupMeeting: {
+    id: string;
+    name: string;
+    days: string[];
+    time: string;
+  } | null;
   dgroupMeetings: {
     id: string;
     name: string;
@@ -117,11 +126,19 @@ function parseMember(value: unknown): Member | null {
     typeof record.birthdate !== "string" ||
     typeof record.createdAt !== "string" ||
     typeof record.isDgroupLeader !== "boolean" ||
+    typeof record.preTrueLife !== "boolean" ||
+    typeof record.trueLife !== "boolean" ||
+    typeof record.baptism !== "boolean" ||
     !isStatus(record.status) ||
     !isGender(record.gender) ||
     !isCivilStatus(record.civilStatus) ||
     !isBranch(record.branch)
   ) {
+    return null;
+  }
+
+  const dgroupMeeting = attendedMeeting(record.dgroupMeeting);
+  if (dgroupMeeting === undefined) {
     return null;
   }
 
@@ -137,10 +154,14 @@ function parseMember(value: unknown): Member | null {
     gender: record.gender,
     civilStatus: record.civilStatus,
     isDgroupLeader: record.isDgroupLeader,
+    preTrueLife: record.preTrueLife,
+    trueLife: record.trueLife,
+    baptism: record.baptism,
     status: record.status,
     createdAt: record.createdAt,
     branch: record.branch,
     roles: roleNames(record.roles),
+    dgroupMeeting,
     dgroupMeetings: meetings(record.dgroupMeetings),
   };
 }
@@ -184,6 +205,31 @@ function isBranch(value: unknown): value is Member["branch"] {
 
 function optionalText(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value : null;
+}
+
+function attendedMeeting(value: unknown): Member["dgroupMeeting"] | undefined {
+  if (value === null) {
+    return null;
+  }
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+  const meeting = value as Record<string, unknown>;
+  if (
+    typeof meeting.id !== "string" ||
+    typeof meeting.name !== "string" ||
+    typeof meeting.time !== "string"
+  ) {
+    return undefined;
+  }
+  return {
+    id: meeting.id,
+    name: meeting.name,
+    days: Array.isArray(meeting.days)
+      ? meeting.days.filter((day): day is string => typeof day === "string")
+      : [],
+    time: meeting.time,
+  };
 }
 
 function meetings(value: unknown): Member["dgroupMeetings"] {

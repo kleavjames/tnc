@@ -1,0 +1,17 @@
+[
+  {
+    "name": "True North Church",
+    "branch": "Davao",
+    "address": "Door 6 & 7, Camfer Building, 154 Bonifacio St, Poblacion District, Davao City, 8000 Davao del Sur"
+  },
+  {
+    "name": "True North Kapalong",
+    "branch": "Kapalong",
+    "address": "Gabuyan, Kapalong, Davao del Norte"
+  },
+  {
+    "name": "True North Tagum",
+    "branch": "Tagum",
+    "address": "Magugpo West, Tagum, Davao del Norte"
+  }
+]

@@ -151,16 +151,91 @@ model ChurchBranch {
 
 /// Recurring small-group meeting. `time` is a clock label such as "19:00".
 model DgroupMeeting {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
-  description String    @default("")
+  description String   @default("")
   days        Weekday[]
   time        String
-  members     Member[]
+  leaderId    String
+  leader      Member   @relation("LedMeetings", fields: [leaderId], references: [id], onDelete: Cascade)
+  members     Member[] @relation("AttendsMeeting")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([leaderId])
+  @@map("dgroup_meetings")
+}
+
+/// One GLC level, such as GLC 1 Edify. Books and sessions are the shared curriculum.
+model Glc {
+  id          String    @id @default(cuid())
+  level       Int       @unique
+  name        String
+  title       String
+  description String
+  books       GlcBook[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  @@map("dgroup_meetings")
+  @@map("glcs")
+}
+
+/// A book inside a GLC level. `number` is unique within that level.
+model GlcBook {
+  id        String       @id @default(cuid())
+  number    Int
+  title     String
+  glcId     String
+  glc       Glc          @relation(fields: [glcId], references: [id], onDelete: Cascade)
+  sessions  GlcSession[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@unique([glcId, number])
+  @@map("glc_books")
+}
+
+/// A class session inside a GLC book. `number` is unique within that book.
+model GlcSession {
+  id       String               @id @default(cuid())
+  number   Int
+  title    String
+  bookId   String
+  book     GlcBook              @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  progress GlcProgressSession[]
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  @@unique([bookId, number])
+  @@map("glc_sessions")
+}
+
+/// A member's decision to attend GLC. Absent until they opt in.
+model GlcProgress {
+  id        String               @id @default(cuid())
+  memberId  String               @unique
+  member    Member               @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  sessions  GlcProgressSession[]
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  @@map("glc_progress")
+}
+
+/// Whether this member attended one seeded session.
+model GlcProgressSession {
+  id         String      @id @default(cuid())
+  progressId String
+  progress   GlcProgress @relation(fields: [progressId], references: [id], onDelete: Cascade)
+  sessionId  String
+  session    GlcSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  attended   Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@unique([progressId, sessionId])
+  @@index([sessionId])
+  @@map("glc_progress_sessions")
 }
 
 /// Directory person. Roles are optional; an empty list means no role is connected yet.
@@ -179,13 +254,23 @@ model Member {
   roles          Role[]
   branchId       String
   branch         ChurchBranch    @relation(fields: [branchId], references: [id])
-  isDgroupLeader Boolean         @default(false)
+  isDgroupLeader  Boolean         @default(false)
+  preTrueLife     Boolean         @default(false)
+  trueLife        Boolean         @default(false)
+  baptism         Boolean         @default(false)
   /// Admin decision after registration. New members stay pending until an admin approves them.
-  status         MemberStatus    @default(pending)
-  dgroupMeetings DgroupMeeting[]
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  status          MemberStatus    @default(pending)
+  /// The meeting this member attends. Null until assigned.
+  dgroupMeetingId String?
+  dgroupMeeting   DgroupMeeting?  @relation("AttendsMeeting", fields: [dgroupMeetingId], references: [id], onDelete: SetNull)
+  /// Meetings this member leads.
+  dgroupMeetings  DgroupMeeting[] @relation("LedMeetings")
+  /// Present only after the member decides to attend GLC.
+  glcProgress     GlcProgress?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   @@index([branchId])
+  @@index([dgroupMeetingId])
   @@map("members")
 }
