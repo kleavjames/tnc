@@ -21,6 +21,12 @@ export class MembersController {
     return this.members.create(body);
   }
 
+  @Get('dgroup-meetings')
+  @UseGuards(AuthGuard)
+  listDgroupMeetings() {
+    return this.members.listDgroupMeetings();
+  }
+
   @Get()
   @UseGuards(AuthGuard)
   list(

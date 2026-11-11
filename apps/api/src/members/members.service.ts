@@ -114,10 +114,36 @@ export class MembersService {
     if (data.branchId) {
       await this.requireBranch(data.branchId);
     }
+    if (data.dgroupMeetingId) {
+      await this.requireDgroupMeeting(data.dgroupMeetingId);
+    }
+    const {
+      dgroupMeetingId,
+      preTrueLife,
+      trueLife,
+      baptism,
+      ...profile
+    } = data;
+    const update: Prisma.MemberUpdateInput = { ...profile };
+    if (preTrueLife !== undefined) {
+      update.preTrueLife = preTrueLife;
+    }
+    if (trueLife !== undefined) {
+      update.trueLife = trueLife;
+    }
+    if (baptism !== undefined) {
+      update.baptism = baptism;
+    }
+    if (dgroupMeetingId !== undefined) {
+      update.dgroupMeeting =
+        dgroupMeetingId === null
+          ? { disconnect: true }
+          : { connect: { id: dgroupMeetingId } };
+    }
     try {
       const member = await this.prisma.member.update({
         where: { id },
-        data,
+        data: update,
         select: memberSelect,
       });
       return toMember(member);
@@ -169,6 +195,23 @@ export class MembersService {
     if (!branch) {
       throw new BadRequestException('branchId is invalid');
     }
+  }
+
+  private async requireDgroupMeeting(id: string) {
+    const meeting = await this.prisma.dgroupMeeting.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!meeting) {
+      throw new BadRequestException('dgroupMeetingId is invalid');
+    }
+  }
+
+  listDgroupMeetings() {
+    return this.prisma.dgroupMeeting.findMany({
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, days: true, time: true },
+    });
   }
 }
 

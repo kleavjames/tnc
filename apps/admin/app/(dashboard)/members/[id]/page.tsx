@@ -18,12 +18,9 @@ import {
   TabsList,
   TabsTrigger,
 } from "@repo/ui/components/tabs";
-import {
-  branchLabel,
-  formatMemberDate,
-  labelize,
-  memberName,
-} from "@/lib/member-display";
+import { MemberPersonalTab } from "@/components/member-personal-tab";
+import { labelize, memberName } from "@/lib/member-display";
+import { listChurchBranches } from "@/lib/church-branches";
 import { getMember, type Member } from "@/lib/members";
 
 export const metadata: Metadata = {
@@ -36,7 +33,10 @@ export default async function MemberPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const member = await getMember(id);
+  const [member, branches] = await Promise.all([
+    getMember(id),
+    listChurchBranches(),
+  ]);
   if (!member) {
     notFound();
   }
@@ -83,44 +83,7 @@ export default async function MemberPage({
           </TabsList>
 
           <TabsContent value="personal" className="flex flex-col gap-10">
-            <div className="grid gap-10 lg:grid-cols-2 lg:gap-12">
-              <Section title="Personal">
-                <Field label="First name" value={member.firstName} />
-                <Field label="Last name" value={member.lastName} />
-                <Field
-                  label="Birthdate"
-                  value={formatMemberDate(member.birthdate)}
-                />
-                <Field label="Gender" value={labelize(member.gender)} />
-                <Field
-                  label="Civil status"
-                  value={labelize(member.civilStatus)}
-                />
-              </Section>
-
-              <Section title="Contact">
-                <Field label="Mobile" value={member.mobileNumber} />
-                <Field label="Email" value={member.email} />
-                <Field label="Messenger" value={member.messengerName} />
-              </Section>
-            </div>
-
-            <Section title="Church">
-              <Field label="Branch" value={branchLabel(member.branch)} />
-              <Field
-                label="Dgroup leader"
-                value={member.isDgroupLeader ? "Yes" : "No"}
-              />
-              <Field label="Dgroup" value={attendedLabel(member.dgroupMeeting)} />
-              <Field label="Pre-True Life" value={yesNo(member.preTrueLife)} />
-              <Field label="True Life" value={yesNo(member.trueLife)} />
-              <Field label="Baptism" value={yesNo(member.baptism)} />
-              <Field label="Roles" value={member.roles.join(", ")} />
-              <Field
-                label="Registered"
-                value={formatMemberDate(member.createdAt)}
-              />
-            </Section>
+            <MemberPersonalTab member={member} branches={branches} />
           </TabsContent>
 
           <TabsContent value="dgroup">
@@ -179,48 +142,6 @@ export default async function MemberPage({
       </div>
     </div>
   );
-}
-
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="flex min-w-0 flex-col gap-4">
-      <h2 className="text-xl font-bold tracking-tight">{title}</h2>
-      <dl className="flex flex-col border-t">{children}</dl>
-    </section>
-  );
-}
-
-function Field({ label, value }: { label: string; value: string | null }) {
-  return (
-    <div className="grid gap-1 border-b py-3 sm:grid-cols-[9rem_1fr] sm:gap-4">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 font-semibold break-words">
-        {value ? (
-          value
-        ) : (
-          <span className="font-normal text-muted-foreground">—</span>
-        )}
-      </dd>
-    </div>
-  );
-}
-
-function yesNo(value: boolean): string {
-  return value ? "Yes" : "No";
-}
-
-function attendedLabel(meeting: Member["dgroupMeeting"]): string | null {
-  if (!meeting) {
-    return null;
-  }
-  const days = meeting.days.map(labelize).join(", ");
-  return [meeting.name, days, meeting.time].filter(Boolean).join(" · ");
 }
 
 function initials(member: Pick<Member, "firstName" | "lastName">): string {

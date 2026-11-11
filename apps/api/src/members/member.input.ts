@@ -29,6 +29,15 @@ export type MemberProfile = {
   isDgroupLeader: boolean;
 };
 
+export type MemberUpdate = Partial<
+  MemberProfile & {
+    preTrueLife: boolean;
+    trueLife: boolean;
+    baptism: boolean;
+    dgroupMeetingId: string | null;
+  }
+>;
+
 export type MeetingInput = {
   name: string;
   description: string;
@@ -74,9 +83,9 @@ export function parseMemberCreate(body: unknown): MemberCreate {
 }
 
 /** Only the fields present in the body are returned. */
-export function parseMemberUpdate(body: unknown): Partial<MemberProfile> {
+export function parseMemberUpdate(body: unknown): MemberUpdate {
   const record = requireRecord(body);
-  const update: Partial<MemberProfile> = {};
+  const update: MemberUpdate = {};
 
   if ('firstName' in record) {
     update.firstName = requiredText(record.firstName, 'firstName');
@@ -110,6 +119,18 @@ export function parseMemberUpdate(body: unknown): Partial<MemberProfile> {
       record.isDgroupLeader,
       'isDgroupLeader',
     );
+  }
+  if ('preTrueLife' in record) {
+    update.preTrueLife = requiredBoolean(record.preTrueLife, 'preTrueLife');
+  }
+  if ('trueLife' in record) {
+    update.trueLife = requiredBoolean(record.trueLife, 'trueLife');
+  }
+  if ('baptism' in record) {
+    update.baptism = requiredBoolean(record.baptism, 'baptism');
+  }
+  if ('dgroupMeetingId' in record) {
+    update.dgroupMeetingId = optionalId(record.dgroupMeetingId, 'dgroupMeetingId');
   }
 
   if (Object.keys(update).length === 0) {
@@ -175,6 +196,23 @@ function optionalBoolean(value: unknown, field: string): boolean {
     throw new BadRequestException(`${field} must be true or false`);
   }
   return value;
+}
+
+function requiredBoolean(value: unknown, field: string): boolean {
+  if (typeof value !== 'boolean') {
+    throw new BadRequestException(`${field} must be true or false`);
+  }
+  return value;
+}
+
+function optionalId(value: unknown, field: string): string | null {
+  if (value === null || value === '') {
+    return null;
+  }
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new BadRequestException(`${field} is invalid`);
+  }
+  return value.trim();
 }
 
 function birthdate(value: unknown): Date {
