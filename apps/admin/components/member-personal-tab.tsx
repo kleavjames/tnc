@@ -4,6 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@repo/ui/components/button";
 import { Checkbox } from "@repo/ui/components/checkbox";
+import { toast } from "sonner";
 import {
   Field,
   FieldContent,
@@ -19,11 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/ui/components/select";
-import {
-  branchLabel,
-  formatMemberDate,
-  labelize,
-} from "@/lib/member-display";
+import { branchLabel, formatMemberDate, labelize } from "@/lib/member-display";
 import type { ChurchBranch } from "@/lib/church-branches";
 import type { Member } from "@/lib/members";
 
@@ -65,7 +62,9 @@ export function MemberPersonalTab({
   const router = useRouter();
   const [member, setMember] = React.useState(initialMember);
   const [editing, setEditing] = React.useState(false);
-  const [draft, setDraft] = React.useState<Draft>(() => draftFromMember(member));
+  const [draft, setDraft] = React.useState<Draft>(() =>
+    draftFromMember(member),
+  );
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -116,10 +115,13 @@ export function MemberPersonalTab({
         throw new Error(await readError(response));
       }
       setEditing(false);
+      toast.success("Member information saved successfully.");
       router.refresh();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Could not save member information.",
+        err instanceof Error
+          ? err.message
+          : "Could not save member information.",
       );
     } finally {
       setSaving(false);
@@ -237,7 +239,10 @@ export function MemberPersonalTab({
                       value === "widowed" ||
                       value === "separated"
                     ) {
-                      setDraft((current) => ({ ...current, civilStatus: value }));
+                      setDraft((current) => ({
+                        ...current,
+                        civilStatus: value,
+                      }));
                     }
                   }}
                 >
@@ -396,7 +401,10 @@ export function MemberPersonalTab({
               label="Pre-True Life"
               value={member.preTrueLife ? "Yes" : "No"}
             />
-            <ViewField label="True Life" value={member.trueLife ? "Yes" : "No"} />
+            <ViewField
+              label="True Life"
+              value={member.trueLife ? "Yes" : "No"}
+            />
             <ViewField label="Baptism" value={member.baptism ? "Yes" : "No"} />
             <ViewField label="Roles" value={member.roles.join(", ")} />
             <ViewField
