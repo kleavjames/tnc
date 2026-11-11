@@ -94,6 +94,10 @@ export default async function MemberPage({
             label="Dgroup leader"
             value={member.isDgroupLeader ? "Yes" : "No"}
           />
+          <Field label="Dgroup" value={attendedLabel(member.dgroupMeeting)} />
+          <Field label="Pre-True Life" value={yesNo(member.preTrueLife)} />
+          <Field label="True Life" value={yesNo(member.trueLife)} />
+          <Field label="Baptism" value={yesNo(member.baptism)} />
           <Field label="Roles" value={member.roles.join(", ")} />
           <Field label="Registered" value={formatMemberDate(member.createdAt)} />
         </Section>
@@ -178,6 +182,18 @@ function Field({ label, value }: { label: string; value: string | null }) {
       </dd>
     </div>
   );
+}
+
+function yesNo(value: boolean): string {
+  return value ? "Yes" : "No";
+}
+
+function attendedLabel(meeting: Member["dgroupMeeting"]): string | null {
+  if (!meeting) {
+    return null;
+  }
+  const days = meeting.days.map(labelize).join(", ");
+  return [meeting.name, days, meeting.time].filter(Boolean).join(" · ");
 }
 
 function initials(member: Pick<Member, "firstName" | "lastName">): string {

@@ -151,15 +151,18 @@ model ChurchBranch {
 
 /// Recurring small-group meeting. `time` is a clock label such as "19:00".
 model DgroupMeeting {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
-  description String    @default("")
+  description String   @default("")
   days        Weekday[]
   time        String
-  members     Member[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  leaderId    String
+  leader      Member   @relation("LedMeetings", fields: [leaderId], references: [id], onDelete: Cascade)
+  members     Member[] @relation("AttendsMeeting")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
+  @@index([leaderId])
   @@map("dgroup_meetings")
 }
 
@@ -179,13 +182,21 @@ model Member {
   roles          Role[]
   branchId       String
   branch         ChurchBranch    @relation(fields: [branchId], references: [id])
-  isDgroupLeader Boolean         @default(false)
+  isDgroupLeader  Boolean         @default(false)
+  preTrueLife     Boolean         @default(false)
+  trueLife        Boolean         @default(false)
+  baptism         Boolean         @default(false)
   /// Admin decision after registration. New members stay pending until an admin approves them.
-  status         MemberStatus    @default(pending)
-  dgroupMeetings DgroupMeeting[]
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  status          MemberStatus    @default(pending)
+  /// The meeting this member attends. Null until assigned.
+  dgroupMeetingId String?
+  dgroupMeeting   DgroupMeeting?  @relation("AttendsMeeting", fields: [dgroupMeetingId], references: [id], onDelete: SetNull)
+  /// Meetings this member leads.
+  dgroupMeetings  DgroupMeeting[] @relation("LedMeetings")
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   @@index([branchId])
+  @@index([dgroupMeetingId])
   @@map("members")
 }

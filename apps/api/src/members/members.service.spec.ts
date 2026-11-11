@@ -91,27 +91,13 @@ describe('MembersService', () => {
     expect(member.birthdate).toBe('1994-06-12');
   });
 
-  it('deletes a rejected member and meetings left with nobody', async () => {
+  it('deletes a rejected member', async () => {
     const deleteMember = vi.fn().mockResolvedValue({});
-    const deleteMany = vi.fn().mockResolvedValue({ count: 1 });
-    const tx = {
-      member: { delete: deleteMember },
-      dgroupMeeting: { deleteMany },
-    };
     const result = await service({
-      member: {
-        findUnique: vi.fn().mockResolvedValue({
-          id: 'm1',
-          dgroupMeetings: [{ id: 'g1' }],
-        }),
-      },
-      $transaction: vi.fn(async (run: (client: typeof tx) => unknown) => run(tx)),
+      member: { delete: deleteMember },
     }).reject('m1');
 
     expect(deleteMember).toHaveBeenCalledWith({ where: { id: 'm1' } });
-    expect(deleteMany).toHaveBeenCalledWith({
-      where: { id: { in: ['g1'] }, members: { none: {} } },
-    });
     expect(result).toEqual({ deleted: true });
   });
 

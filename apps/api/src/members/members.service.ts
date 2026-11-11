@@ -25,10 +25,16 @@ const memberSelect = {
   gender: true,
   civilStatus: true,
   isDgroupLeader: true,
+  preTrueLife: true,
+  trueLife: true,
+  baptism: true,
   status: true,
   createdAt: true,
   branch: { select: { id: true, name: true, branch: true } },
   roles: { select: { id: true, name: true } },
+  dgroupMeeting: {
+    select: { id: true, name: true, days: true, time: true },
+  },
   dgroupMeetings: {
     select: { id: true, name: true, description: true, days: true, time: true },
     orderBy: { createdAt: 'asc' },
@@ -125,24 +131,8 @@ export class MembersService {
   }
 
   async reject(id: string) {
-    const member = await this.prisma.member.findUnique({
-      where: { id },
-      select: { id: true, dgroupMeetings: { select: { id: true } } },
-    });
-    if (!member) {
-      throw new NotFoundException('Member not found');
-    }
-
-    const meetingIds = member.dgroupMeetings.map((meeting) => meeting.id);
     try {
-      await this.prisma.$transaction(async (tx) => {
-        await tx.member.delete({ where: { id } });
-        if (meetingIds.length > 0) {
-          await tx.dgroupMeeting.deleteMany({
-            where: { id: { in: meetingIds }, members: { none: {} } },
-          });
-        }
-      });
+      await this.prisma.member.delete({ where: { id } });
     } catch (error) {
       throw mapMissing(error, 'Member not found');
     }
