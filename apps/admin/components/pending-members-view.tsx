@@ -3,17 +3,9 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Trash2Icon } from "lucide-react";
+import { Trash2Icon, UserRoundIcon } from "lucide-react";
 import { Button } from "@repo/ui/components/button";
 import { Modal } from "@repo/ui/modal";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@repo/ui/components/dialog";
 import {
   Table,
   TableBody,
@@ -147,7 +139,19 @@ export function PendingMembersView({ members }: { members: Member[] }) {
             </TableHeader>
             <TableBody>
               {members.map((member) => (
-                <TableRow key={member.id}>
+                <TableRow
+                  key={member.id}
+                  className="cursor-pointer"
+                  onClick={(event) => {
+                    if (
+                      event.target instanceof Element &&
+                      event.target.closest("button")
+                    ) {
+                      return;
+                    }
+                    openMember(member);
+                  }}
+                >
                   <TableCell>
                     <button
                       type="button"
@@ -186,7 +190,7 @@ export function PendingMembersView({ members }: { members: Member[] }) {
         </div>
       )}
 
-      <Dialog
+      <Modal
         open={selected !== null}
         onOpenChange={(open) => {
           if (!open && !busy) {
@@ -194,43 +198,31 @@ export function PendingMembersView({ members }: { members: Member[] }) {
             setError(null);
           }
         }}
+        icon={<UserRoundIcon />}
+        title={selected ? memberName(selected) : "Registration"}
+        description={selected?.membershipId ?? "Pending registration"}
+        cancelLabel="Close"
+        confirmLabel={busy === "approve" ? "Approving..." : "Approve"}
+        confirmVariant="default"
+        pending={busy === "approve"}
+        onConfirm={() => {
+          if (selected) {
+            void decide(selected, "approve");
+          }
+        }}
+        secondaryAction={{
+          label: "Reject",
+          disabled: selected === null,
+          onClick: () => {
+            if (selected) {
+              askReject(selected);
+            }
+          },
+        }}
       >
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              {selected ? memberName(selected) : "Registration"}
-            </DialogTitle>
-            <DialogDescription>
-              {selected?.membershipId ?? "Registration details"}
-            </DialogDescription>
-          </DialogHeader>
-          {selected ? <MemberDetails member={selected} /> : null}
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
-          <DialogFooter>
-            <Button
-              variant="destructive"
-              disabled={busy !== null || selected === null}
-              onClick={() => {
-                if (selected) {
-                  askReject(selected);
-                }
-              }}
-            >
-              Reject
-            </Button>
-            <Button
-              disabled={busy !== null || selected === null}
-              onClick={() => {
-                if (selected) {
-                  void decide(selected, "approve");
-                }
-              }}
-            >
-              {busy === "approve" ? "Approving..." : "Approve"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        {selected ? <MemberPreview member={selected} /> : null}
+        {error ? <p className="text-destructive">{error}</p> : null}
+      </Modal>
 
       <Modal
         open={rejecting !== null}
@@ -264,50 +256,53 @@ export function PendingMembersView({ members }: { members: Member[] }) {
   );
 }
 
-function MemberDetails({ member }: { member: Member }) {
-  const rows = [
-    ["Mobile", member.mobileNumber],
-    ["Email", member.email ?? "—"],
-    ["Messenger", member.messengerName ?? "—"],
-    ["Birthdate", formatMemberDate(member.birthdate)],
-    ["Gender", labelize(member.gender)],
-    ["Civil status", labelize(member.civilStatus)],
-    ["Branch", branchLabel(member.branch)],
-    ["Dgroup leader", member.isDgroupLeader ? "Yes" : "No"],
-    ["Registered", formatMemberDate(member.createdAt)],
-  ];
-
+function MemberPreview({ member }: { member: Member }) {
   return (
-    <div className="flex flex-col gap-4">
-      <dl className="grid grid-cols-[8rem_1fr] gap-x-4 gap-y-2">
-        {rows.map(([label, value]) => (
-          <React.Fragment key={label}>
-            <dt className="text-muted-foreground">{label}</dt>
-            <dd>{value}</dd>
-          </React.Fragment>
-        ))}
-      </dl>
-      {member.dgroupMeetings.length > 0 ? (
-        <div className="flex flex-col gap-2">
-          <p className="text-muted-foreground">Dgroup meetings</p>
-          <ul className="flex flex-col gap-2">
-            {member.dgroupMeetings.map((meeting) => (
-              <li key={meeting.id}>
-                <span className="font-medium">{meeting.name}</span>
-                <span className="text-muted-foreground">
-                  {" "}
-                  · {meeting.days.map(labelize).join(", ")} · {meeting.time}
-                </span>
-                {meeting.description ? (
-                  <span className="block text-muted-foreground">
-                    {meeting.description}
-                  </span>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+    <div className="flex flex-col gap-6 text-foreground">
+      <PreviewSection title="Personal">
+        <PreviewField label="First name" value={member.firstName} />
+        <PreviewField label="Last name" value={member.lastName} />
+        <PreviewField
+          label="Birthdate"
+          value={formatMemberDate(member.birthdate)}
+        />
+        <PreviewField label="Gender" value={labelize(member.gender)} />
+        <PreviewField
+          label="Civil status"
+          value={labelize(member.civilStatus)}
+        />
+      </PreviewSection>
+      <PreviewSection title="Contact">
+        <PreviewField label="Mobile" value={member.mobileNumber} />
+        <PreviewField label="Email" value={member.email} />
+        <PreviewField label="Messenger" value={member.messengerName} />
+      </PreviewSection>
+    </div>
+  );
+}
+
+function PreviewSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="flex flex-col gap-1">
+      <h2 className="font-semibold text-foreground">{title}</h2>
+      <dl className="flex flex-col border-t">{children}</dl>
+    </section>
+  );
+}
+
+function PreviewField({ label, value }: { label: string; value: string | null }) {
+  return (
+    <div className="grid grid-cols-[7.5rem_1fr] gap-3 border-b py-2">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 font-medium break-words text-foreground">
+        {value || "—"}
+      </dd>
     </div>
   );
 }

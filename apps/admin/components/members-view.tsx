@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { SearchIcon } from "lucide-react";
 import { Button } from "@repo/ui/components/button";
 import {
@@ -17,10 +18,15 @@ import {
   TableHeader,
   TableRow,
 } from "@repo/ui/components/table";
-import { branchLabel, formatMemberDate, memberName } from "../lib/member-display";
+import {
+  branchLabel,
+  formatMemberDate,
+  memberName,
+} from "../lib/member-display";
 import type { Member } from "../lib/members";
 
 export function MembersView({ members }: { members: Member[] }) {
+  const router = useRouter();
   const [query, setQuery] = React.useState("");
   const visibleMembers = filterMembers(members, query);
 
@@ -87,18 +93,20 @@ export function MembersView({ members }: { members: Member[] }) {
             </TableHeader>
             <TableBody>
               {visibleMembers.map((member) => (
-                <TableRow key={member.id}>
+                <TableRow
+                  key={member.id}
+                  className="group cursor-pointer"
+                  onClick={() => {
+                    if (window.getSelection()?.toString()) {
+                      return;
+                    }
+                    router.push(`/members/${member.id}`);
+                  }}
+                >
                   <TableCell className="font-medium">
                     {member.membershipId}
                   </TableCell>
-                  <TableCell>
-                    <Link
-                      href={`/members/${member.id}`}
-                      className="font-medium hover:underline"
-                    >
-                      {memberName(member)}
-                    </Link>
-                  </TableCell>
+                  <TableCell>{memberName(member)}</TableCell>
                   <TableCell>{member.mobileNumber}</TableCell>
                   <TableCell>{member.email ?? "—"}</TableCell>
                   <TableCell>{branchLabel(member.branch)}</TableCell>
