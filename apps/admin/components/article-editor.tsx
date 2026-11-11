@@ -38,6 +38,7 @@ import {
 } from "@repo/ui/components/select";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import { toast } from "sonner";
 import { cn } from "@repo/ui/lib/utils";
 import { ChipInput } from "./chip-input";
 import type { SeriesItem } from "../lib/series";
@@ -341,6 +342,7 @@ export function ArticleEditor({
 
   async function runSave(
     action: () => Promise<{ id: string; articleStatus: ArticleStatus }>,
+    successMessage?: string,
   ) {
     if (savingRef.current) {
       return;
@@ -355,6 +357,9 @@ export function ArticleEditor({
     try {
       const saved = await action();
       persist({ id: saved.id, articleStatus: saved.articleStatus });
+      if (successMessage) {
+        toast.success(successMessage);
+      }
     } catch (error) {
       setSaveError(
         error instanceof Error ? error.message : "Could not save the article.",
@@ -371,8 +376,10 @@ export function ArticleEditor({
     if (!content) {
       return;
     }
-    return runSave(() =>
-      current.id ? updateArticle(current.id, content) : createDraft(content),
+    return runSave(
+      () =>
+        current.id ? updateArticle(current.id, content) : createDraft(content),
+      current.articleStatus === "published" ? "Article saved." : "Draft saved.",
     );
   }
 
@@ -382,10 +389,12 @@ export function ArticleEditor({
     if (!content) {
       return;
     }
-    return runSave(() =>
-      current.id
-        ? publishArticle(current.id, content)
-        : createPublished(content),
+    return runSave(
+      () =>
+        current.id
+          ? publishArticle(current.id, content)
+          : createPublished(content),
+      "Article published.",
     );
   }
 

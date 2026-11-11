@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@repo/ui/components/table";
 import type { GlcProgress } from "@/lib/glc-progress";
+import { toast } from "sonner";
 
 export function GlcMemberView({
   memberId,
@@ -62,6 +63,7 @@ export function GlcMemberView({
           await readError(response, "Could not update attendance."),
         );
       }
+      toast.success("Progress updated.");
       router.refresh();
     } catch (err) {
       setOverrides((current) => {
@@ -122,7 +124,7 @@ export function GlcMemberView({
               <div className="overflow-x-auto rounded-md border">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-primary">
+                    <TableRow className="bg-primary hover:bg-primary">
                       {book.sessions.map((session) => (
                         <TableHead
                           key={session.id}
@@ -132,7 +134,7 @@ export function GlcMemberView({
                         </TableHead>
                       ))}
                     </TableRow>
-                    <TableRow className="bg-primary/30">
+                    <TableRow className="bg-primary/30 hover:bg-primary/30">
                       {book.sessions.map((session) => (
                         <TableHead
                           key={session.id}

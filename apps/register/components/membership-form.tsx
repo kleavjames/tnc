@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@repo/ui/components/button";
-import { Card, CardContent, CardHeader } from "@repo/ui/components/card";
+import { Card, CardContent } from "@repo/ui/components/card";
 import {
   Field,
   FieldDescription,
@@ -396,14 +396,21 @@ export function MembershipForm({
   return (
     <main className="mx-auto flex w-full max-w-xl flex-1 flex-col px-4 py-10 sm:px-6">
       <Card className={cardClass}>
-        <CardHeader className="gap-2">
-          <h1 className="text-3xl font-extrabold tracking-tight text-primary">
-            Membership
-          </h1>
-          <p className="leading-7 text-muted-foreground">
-            Register as a member of True North Church.
-          </p>
-        </CardHeader>
+        <div className="-mt-(--card-spacing) flex items-center gap-4 bg-primary px-(--card-spacing) py-6 text-primary-foreground sm:gap-5 sm:py-8">
+          <span
+            role="img"
+            aria-label="True North Church"
+            className="size-20 shrink-0 bg-primary-foreground mask-[url(/tnc-logo-v2-transparent.png)] mask-contain mask-center mask-no-repeat sm:size-24"
+          />
+          <div className="flex flex-col gap-1">
+            <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+              Membership
+            </h1>
+            <p className="leading-6 text-primary-foreground/80">
+              Register as a member of True North Church.
+            </p>
+          </div>
+        </div>
         <CardContent>
           <form noValidate onSubmit={onSubmit} className="flex flex-col gap-8">
             <FieldGroup>
@@ -482,7 +489,7 @@ export function MembershipForm({
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="messengerName">Messenger name</FieldLabel>
+                <FieldLabel htmlFor="messengerName">Messenger Name</FieldLabel>
                 <Input
                   id="messengerName"
                   name="messengerName"
