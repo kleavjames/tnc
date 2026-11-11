@@ -21,6 +21,7 @@ import {
   memberName,
 } from "../lib/member-display";
 import type { Member } from "../lib/members";
+import { toast } from "sonner";
 
 type Decision = "approve" | "reject";
 
@@ -69,6 +70,11 @@ export function PendingMembersView({ members }: { members: Member[] }) {
         );
         return;
       }
+      toast.success(
+        decision === "approve"
+          ? "Registration approved."
+          : "Registration rejected.",
+      );
       setSelected(null);
       setRejecting(null);
       router.refresh();
@@ -296,7 +302,13 @@ function PreviewSection({
   );
 }
 
-function PreviewField({ label, value }: { label: string; value: string | null }) {
+function PreviewField({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | null;
+}) {
   return (
     <div className="grid grid-cols-[7.5rem_1fr] gap-3 border-b py-2">
       <dt className="text-muted-foreground">{label}</dt>

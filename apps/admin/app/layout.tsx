@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Toaster } from "@repo/ui/components/sonner";
 import { cn } from "@repo/ui/lib/utils";
 import { montserrat } from "@repo/ui/fonts/montserrat";
 import "./globals.css";
@@ -25,6 +26,7 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col bg-background text-foreground">
         <TooltipProvider>{children}</TooltipProvider>
+        <Toaster position="top-right" />
       </body>
     </html>
   );
