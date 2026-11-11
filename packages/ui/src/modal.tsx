@@ -20,7 +20,9 @@ export function Modal({
   children,
   cancelLabel = "Cancel",
   confirmLabel,
+  confirmVariant = "destructive",
   onConfirm,
+  secondaryAction,
   pending = false,
 }: {
   open: boolean;
@@ -31,7 +33,13 @@ export function Modal({
   children: React.ReactNode;
   cancelLabel?: string;
   confirmLabel: string;
+  confirmVariant?: "default" | "destructive";
   onConfirm: () => void;
+  secondaryAction?: {
+    label: string;
+    onClick: () => void;
+    disabled?: boolean;
+  };
   pending?: boolean;
 }) {
   return (
@@ -70,7 +78,20 @@ export function Modal({
           >
             {cancelLabel}
           </Button>
-          <Button variant="destructive" disabled={pending} onClick={onConfirm}>
+          {secondaryAction ? (
+            <Button
+              variant="destructive"
+              disabled={pending || secondaryAction.disabled}
+              onClick={secondaryAction.onClick}
+            >
+              {secondaryAction.label}
+            </Button>
+          ) : null}
+          <Button
+            variant={confirmVariant}
+            disabled={pending}
+            onClick={onConfirm}
+          >
             {confirmLabel}
           </Button>
         </DialogFooter>
