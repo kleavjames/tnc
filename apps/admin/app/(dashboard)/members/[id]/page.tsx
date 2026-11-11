@@ -13,6 +13,12 @@ import {
   TableRow,
 } from "@repo/ui/components/table";
 import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@repo/ui/components/tabs";
+import {
   branchLabel,
   formatMemberDate,
   labelize,
@@ -69,86 +75,107 @@ export default async function MemberPage({
           </div>
         </header>
 
-        <div className="grid gap-10 lg:grid-cols-2 lg:gap-12">
-          <Section title="Personal">
-            <Field label="First name" value={member.firstName} />
-            <Field label="Last name" value={member.lastName} />
-            <Field
-              label="Birthdate"
-              value={formatMemberDate(member.birthdate)}
-            />
-            <Field label="Gender" value={labelize(member.gender)} />
-            <Field label="Civil status" value={labelize(member.civilStatus)} />
-          </Section>
+        <Tabs defaultValue="personal" className="gap-8">
+          <TabsList variant="line" className="gap-2">
+            <TabsTrigger value="personal">Personal Information</TabsTrigger>
+            <TabsTrigger value="dgroup">Dgroup Meetings</TabsTrigger>
+            <TabsTrigger value="glc">GLC Progress</TabsTrigger>
+          </TabsList>
 
-          <Section title="Contact">
-            <Field label="Mobile" value={member.mobileNumber} />
-            <Field label="Email" value={member.email} />
-            <Field label="Messenger" value={member.messengerName} />
-          </Section>
-        </div>
+          <TabsContent value="personal" className="flex flex-col gap-10">
+            <div className="grid gap-10 lg:grid-cols-2 lg:gap-12">
+              <Section title="Personal">
+                <Field label="First name" value={member.firstName} />
+                <Field label="Last name" value={member.lastName} />
+                <Field
+                  label="Birthdate"
+                  value={formatMemberDate(member.birthdate)}
+                />
+                <Field label="Gender" value={labelize(member.gender)} />
+                <Field
+                  label="Civil status"
+                  value={labelize(member.civilStatus)}
+                />
+              </Section>
 
-        <Section title="Church">
-          <Field label="Branch" value={branchLabel(member.branch)} />
-          <Field
-            label="Dgroup leader"
-            value={member.isDgroupLeader ? "Yes" : "No"}
-          />
-          <Field label="Dgroup" value={attendedLabel(member.dgroupMeeting)} />
-          <Field label="Pre-True Life" value={yesNo(member.preTrueLife)} />
-          <Field label="True Life" value={yesNo(member.trueLife)} />
-          <Field label="Baptism" value={yesNo(member.baptism)} />
-          <Field label="Roles" value={member.roles.join(", ")} />
-          <Field label="Registered" value={formatMemberDate(member.createdAt)} />
-        </Section>
-
-        <section className="flex flex-col gap-4">
-          <h2 className="text-xl font-bold tracking-tight">Dgroup meetings</h2>
-          {member.dgroupMeetings.length === 0 ? (
-            <p className="rounded-md border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
-              No dgroup meetings.
-            </p>
-          ) : (
-            <div className="overflow-x-auto rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="font-bold text-muted-foreground">
-                      Name
-                    </TableHead>
-                    <TableHead className="font-bold text-muted-foreground">
-                      Days
-                    </TableHead>
-                    <TableHead className="font-bold text-muted-foreground">
-                      Time
-                    </TableHead>
-                    <TableHead className="font-bold text-muted-foreground">
-                      Description
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {member.dgroupMeetings.map((meeting) => (
-                    <TableRow key={meeting.id}>
-                      <TableCell className="font-semibold">
-                        {meeting.name}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {meeting.days.map(labelize).join(", ") || "—"}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {meeting.time}
-                      </TableCell>
-                      <TableCell className="max-w-xs whitespace-normal text-muted-foreground">
-                        {meeting.description || "—"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <Section title="Contact">
+                <Field label="Mobile" value={member.mobileNumber} />
+                <Field label="Email" value={member.email} />
+                <Field label="Messenger" value={member.messengerName} />
+              </Section>
             </div>
-          )}
-        </section>
+
+            <Section title="Church">
+              <Field label="Branch" value={branchLabel(member.branch)} />
+              <Field
+                label="Dgroup leader"
+                value={member.isDgroupLeader ? "Yes" : "No"}
+              />
+              <Field label="Dgroup" value={attendedLabel(member.dgroupMeeting)} />
+              <Field label="Pre-True Life" value={yesNo(member.preTrueLife)} />
+              <Field label="True Life" value={yesNo(member.trueLife)} />
+              <Field label="Baptism" value={yesNo(member.baptism)} />
+              <Field label="Roles" value={member.roles.join(", ")} />
+              <Field
+                label="Registered"
+                value={formatMemberDate(member.createdAt)}
+              />
+            </Section>
+          </TabsContent>
+
+          <TabsContent value="dgroup">
+            {member.dgroupMeetings.length === 0 ? (
+              <p className="rounded-md border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
+                No dgroup meetings.
+              </p>
+            ) : (
+              <div className="overflow-x-auto rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="font-bold text-muted-foreground">
+                        Name
+                      </TableHead>
+                      <TableHead className="font-bold text-muted-foreground">
+                        Days
+                      </TableHead>
+                      <TableHead className="font-bold text-muted-foreground">
+                        Time
+                      </TableHead>
+                      <TableHead className="font-bold text-muted-foreground">
+                        Description
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {member.dgroupMeetings.map((meeting) => (
+                      <TableRow key={meeting.id}>
+                        <TableCell className="font-semibold">
+                          {meeting.name}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {meeting.days.map(labelize).join(", ") || "—"}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {meeting.time}
+                        </TableCell>
+                        <TableCell className="max-w-xs whitespace-normal text-muted-foreground">
+                          {meeting.description || "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="glc">
+            <p className="rounded-md border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
+              This member has not started GLC.
+            </p>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
