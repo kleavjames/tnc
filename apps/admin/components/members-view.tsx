@@ -27,6 +27,15 @@ import {
 } from "@repo/ui/components/input-group";
 import { Modal } from "@repo/ui/modal";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@repo/ui/components/pagination";
+import {
   Table,
   TableBody,
   TableCell,
@@ -60,6 +69,10 @@ const CIVIL_STATUSES = [
   { value: "separated", label: "Separated" },
 ] as const;
 
+const PAGE_SIZES = [25, 50, 75, 100] as const;
+
+type PageSize = (typeof PAGE_SIZES)[number];
+
 export function MembersView({
   members,
   pendingCount,
@@ -76,10 +89,29 @@ export function MembersView({
     React.useState<(typeof DGROUP_LEADERS)[number]["value"]>(ALL);
   const [civilStatus, setCivilStatus] =
     React.useState<(typeof CIVIL_STATUSES)[number]["value"]>(ALL);
+  const [page, setPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState<PageSize>(25);
   const branches = churchBranches(members);
   const filters = { branchId, gender, dgroupLeader, civilStatus };
   const visibleMembers = filterMembers(members, query, filters);
   const filtersActive = Object.values(filters).some((value) => value !== ALL);
+  const pageCount = Math.max(1, Math.ceil(visibleMembers.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const pageStart = (currentPage - 1) * pageSize;
+  const pageMembers = visibleMembers.slice(pageStart, pageStart + pageSize);
+
+  function showPage(nextPage: number) {
+    setPage(Math.min(Math.max(nextPage, 1), pageCount));
+  }
+
+  function changePageSize(nextSize: string) {
+    const size = PAGE_SIZES.find((item) => String(item) === nextSize);
+    if (!size) {
+      return;
+    }
+    setPageSize(size);
+    setPage(1);
+  }
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-6 p-6 lg:p-8">
@@ -113,7 +145,10 @@ export function MembersView({
               <InputGroup className="w-full max-w-sm justify-self-start rounded-md sm:col-span-3">
                 <InputGroupInput
                   value={query}
-                  onChange={(event) => setQuery(event.target.value)}
+                  onChange={(event) => {
+                    setQuery(event.target.value);
+                    setPage(1);
+                  }}
                   placeholder="Search name, mobile, or ID..."
                 />
                 <InputGroupAddon>
@@ -134,7 +169,10 @@ export function MembersView({
                       label: branch.branch,
                     })),
                   ]}
-                  onChange={setBranchId}
+                  onChange={(value) => {
+                    setBranchId(value);
+                    setPage(1);
+                  }}
                 />
               ) : null}
               <FilterGroup
@@ -142,21 +180,30 @@ export function MembersView({
                 label="Gender"
                 value={gender}
                 options={GENDERS}
-                onChange={setGender}
+                onChange={(value) => {
+                  setGender(value);
+                  setPage(1);
+                }}
               />
               <FilterGroup
                 id="member-dgroup-leader"
                 label="Dgroup leader"
                 value={dgroupLeader}
                 options={DGROUP_LEADERS}
-                onChange={setDgroupLeader}
+                onChange={(value) => {
+                  setDgroupLeader(value);
+                  setPage(1);
+                }}
               />
               <FilterGroup
                 id="member-civil-status"
                 label="Civil status"
                 value={civilStatus}
                 options={CIVIL_STATUSES}
-                onChange={setCivilStatus}
+                onChange={(value) => {
+                  setCivilStatus(value);
+                  setPage(1);
+                }}
               />
             </div>
           </CardContent>
@@ -193,7 +240,7 @@ export function MembersView({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {visibleMembers.map((member) => (
+              {pageMembers.map((member) => (
                 <TableRow
                   key={member.id}
                   className="group cursor-pointer"
@@ -221,9 +268,35 @@ export function MembersView({
         </div>
       )}
 
-      <p className="text-sm text-muted-foreground">
-        Showing {visibleMembers.length} of {members.length} members
-      </p>
+      {visibleMembers.length > 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            Showing {pageStart + 1}–{pageStart + pageMembers.length} of{" "}
+            {visibleMembers.length} members
+          </p>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-muted-foreground">Rows</p>
+              <ChoiceGroup
+                id="member-page-size"
+                label="Rows per page"
+                size="xs"
+                value={String(pageSize)}
+                options={PAGE_SIZES.map((size) => ({
+                  value: String(size),
+                  label: String(size),
+                }))}
+                onChange={changePageSize}
+              />
+            </div>
+            <MembersPagination
+              page={currentPage}
+              pageCount={pageCount}
+              onPageChange={showPage}
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -322,6 +395,86 @@ function MemberActions({ member }: { member: Member }) {
       </DropdownMenu>
     </>
   );
+}
+
+function MembersPagination({
+  page,
+  pageCount,
+  onPageChange,
+}: {
+  page: number;
+  pageCount: number;
+  onPageChange: (page: number) => void;
+}) {
+  return (
+    <Pagination className="mx-0 w-auto justify-end">
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious
+            href="#"
+            aria-disabled={page === 1}
+            className={page === 1 ? "pointer-events-none opacity-50" : undefined}
+            onClick={(event) => {
+              event.preventDefault();
+              onPageChange(page - 1);
+            }}
+          />
+        </PaginationItem>
+        {pageList(page, pageCount).map((item, index) => (
+          <PaginationItem key={item === "ellipsis" ? `ellipsis-${index}` : item}>
+            {item === "ellipsis" ? (
+              <PaginationEllipsis />
+            ) : (
+              <PaginationLink
+                href="#"
+                isActive={item === page}
+                onClick={(event) => {
+                  event.preventDefault();
+                  onPageChange(item);
+                }}
+              >
+                {item}
+              </PaginationLink>
+            )}
+          </PaginationItem>
+        ))}
+        <PaginationItem>
+          <PaginationNext
+            href="#"
+            aria-disabled={page === pageCount}
+            className={
+              page === pageCount ? "pointer-events-none opacity-50" : undefined
+            }
+            onClick={(event) => {
+              event.preventDefault();
+              onPageChange(page + 1);
+            }}
+          />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
+  );
+}
+
+function pageList(page: number, pageCount: number): Array<number | "ellipsis"> {
+  if (pageCount <= 7) {
+    return Array.from({ length: pageCount }, (_, index) => index + 1);
+  }
+
+  const items: Array<number | "ellipsis"> = [1];
+  const start = Math.max(2, page - 1);
+  const end = Math.min(pageCount - 1, page + 1);
+  if (start > 2) {
+    items.push("ellipsis");
+  }
+  for (let number = start; number <= end; number += 1) {
+    items.push(number);
+  }
+  if (end < pageCount - 1) {
+    items.push("ellipsis");
+  }
+  items.push(pageCount);
+  return items;
 }
 
 function FilterGroup<T extends string>({

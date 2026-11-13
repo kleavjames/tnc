@@ -9,6 +9,15 @@ import { Card, CardContent } from "@repo/ui/components/card";
 import { Checkbox } from "@repo/ui/components/checkbox";
 import { Input } from "@repo/ui/components/input";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@repo/ui/components/pagination";
+import {
   Table,
   TableBody,
   TableCell,
@@ -28,6 +37,10 @@ import { toast } from "sonner";
 
 const ALL = "all";
 
+const PAGE_SIZES = [25, 50, 75, 100] as const;
+
+type PageSize = (typeof PAGE_SIZES)[number];
+
 const AVATAR_TONES = [
   "bg-primary text-primary-foreground",
   "bg-foreground/75 text-background",
@@ -45,6 +58,8 @@ export function GlcAttendanceView({
   const [levelId, setLevelId] = React.useState(ALL);
   const [branchId, setBranchId] = React.useState(ALL);
   const [query, setQuery] = React.useState("");
+  const [page, setPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState<PageSize>(25);
   const [overrides, setOverrides] = React.useState<
     Record<string, Record<string, boolean>>
   >({});
@@ -67,6 +82,23 @@ export function GlcAttendanceView({
     .slice()
     .sort(byName);
   const stats = summarize(visibleMembers, sessions, overrides);
+  const pageCount = Math.max(1, Math.ceil(visibleMembers.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const pageStart = (currentPage - 1) * pageSize;
+  const pageMembers = visibleMembers.slice(pageStart, pageStart + pageSize);
+
+  function showPage(nextPage: number) {
+    setPage(Math.min(Math.max(nextPage, 1), pageCount));
+  }
+
+  function changePageSize(nextSize: string) {
+    const size = PAGE_SIZES.find((item) => String(item) === nextSize);
+    if (!size) {
+      return;
+    }
+    setPageSize(size);
+    setPage(1);
+  }
 
   async function setAttended(
     member: GlcAttendanceMember,
@@ -146,7 +178,10 @@ export function GlcAttendanceView({
           label="Branch"
           value={branchId}
           options={[{ value: ALL, label: "All" }, ...branches]}
-          onChange={setBranchId}
+          onChange={(value) => {
+            setBranchId(value);
+            setPage(1);
+          }}
         />
       </div>
 
@@ -201,7 +236,10 @@ export function GlcAttendanceView({
                     <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       value={query}
-                      onChange={(event) => setQuery(event.target.value)}
+                      onChange={(event) => {
+                        setQuery(event.target.value);
+                        setPage(1);
+                      }}
                       placeholder="Search names..."
                       aria-label="Search names"
                       className="bg-card pl-8"
@@ -253,7 +291,7 @@ export function GlcAttendanceView({
                   </TableCell>
                 </TableRow>
               ) : null}
-              {visibleMembers.map((member) => {
+              {pageMembers.map((member) => {
                 const attended = countAttended(member, sessions, overrides);
                 const total = sessions.length;
                 const percent =
@@ -327,24 +365,125 @@ export function GlcAttendanceView({
       )}
 
       {attendance.members.length > 0 ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
-          <p>
-            Showing {visibleMembers.length} members · {sessions.length} sessions
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            {visibleMembers.length === 0
+              ? `Showing 0 members · ${sessions.length} sessions`
+              : `Showing ${pageStart + 1}–${pageStart + pageMembers.length} of ${visibleMembers.length} members · ${sessions.length} sessions`}
           </p>
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-2">
-              <span className="size-3.5 rounded-[4px] bg-primary" />
-              Done
-            </span>
-            <span className="flex items-center gap-2">
-              <span className="size-3.5 rounded-[4px] border border-input bg-card" />
-              Not yet
-            </span>
+          <div className="flex flex-wrap items-center gap-4">
+            {visibleMembers.length > 0 ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-muted-foreground">Rows</p>
+                  <ChoiceGroup
+                    id="glc-page-size"
+                    label="Rows per page"
+                    size="xs"
+                    value={String(pageSize)}
+                    options={PAGE_SIZES.map((size) => ({
+                      value: String(size),
+                      label: String(size),
+                    }))}
+                    onChange={changePageSize}
+                  />
+                </div>
+                <AttendancePagination
+                  page={currentPage}
+                  pageCount={pageCount}
+                  onPageChange={showPage}
+                />
+              </>
+            ) : null}
           </div>
         </div>
       ) : null}
     </div>
   );
+}
+
+function AttendancePagination({
+  page,
+  pageCount,
+  onPageChange,
+}: {
+  page: number;
+  pageCount: number;
+  onPageChange: (page: number) => void;
+}) {
+  return (
+    <Pagination className="mx-0 w-auto justify-end">
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious
+            href="#"
+            aria-disabled={page === 1}
+            className={
+              page === 1 ? "pointer-events-none opacity-50" : undefined
+            }
+            onClick={(event) => {
+              event.preventDefault();
+              onPageChange(page - 1);
+            }}
+          />
+        </PaginationItem>
+        {pageList(page, pageCount).map((item, index) => (
+          <PaginationItem
+            key={item === "ellipsis" ? `ellipsis-${index}` : item}
+          >
+            {item === "ellipsis" ? (
+              <PaginationEllipsis />
+            ) : (
+              <PaginationLink
+                href="#"
+                isActive={item === page}
+                onClick={(event) => {
+                  event.preventDefault();
+                  onPageChange(item);
+                }}
+              >
+                {item}
+              </PaginationLink>
+            )}
+          </PaginationItem>
+        ))}
+        <PaginationItem>
+          <PaginationNext
+            href="#"
+            aria-disabled={page === pageCount}
+            className={
+              page === pageCount ? "pointer-events-none opacity-50" : undefined
+            }
+            onClick={(event) => {
+              event.preventDefault();
+              onPageChange(page + 1);
+            }}
+          />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
+  );
+}
+
+function pageList(page: number, pageCount: number): Array<number | "ellipsis"> {
+  if (pageCount <= 7) {
+    return Array.from({ length: pageCount }, (_, index) => index + 1);
+  }
+
+  const items: Array<number | "ellipsis"> = [1];
+  const start = Math.max(2, page - 1);
+  const end = Math.min(pageCount - 1, page + 1);
+  if (start > 2) {
+    items.push("ellipsis");
+  }
+  for (let number = start; number <= end; number += 1) {
+    items.push(number);
+  }
+  if (end < pageCount - 1) {
+    items.push("ellipsis");
+  }
+  items.push(pageCount);
+  return items;
 }
 
 function StatCard({ label, value }: { label: string; value: string }) {
