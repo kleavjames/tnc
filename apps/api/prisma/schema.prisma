@@ -262,8 +262,8 @@ model GlcProgressSession {
 /// Directory person. Roles are optional; an empty list means no role is connected yet.
 model Member {
   id             String          @id @default(cuid())
-  /// Formal ID assigned at registration: TNC-00001-26. The number increments for each member; the year is the registration year.
-  membershipId   String          @unique @default(dbgenerated("tnc_membership_id()"))
+  /// Formal ID assigned on approval: TNC-00001-26. Null until then. The number increments for each assignment; the year is the year it is assigned.
+  membershipId   String?         @unique
   firstName      String
   lastName       String
   mobileNumber   String

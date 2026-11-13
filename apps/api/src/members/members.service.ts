@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -90,6 +91,7 @@ export class MembersService {
   async create(body: unknown) {
     const { dgroupMeetings, ...profile } = parseMemberCreate(body);
     await this.requireBranch(profile.branchId);
+    await this.requireUniqueName(profile.firstName, profile.lastName);
 
     const role = await this.prisma.role.findUnique({
       where: { name: DEFAULT_ROLE },
@@ -152,8 +154,39 @@ export class MembersService {
     }
   }
 
-  approve(id: string) {
-    return this.setStatus(id, 'approved');
+  async approve(id: string) {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const current = await tx.member.findUnique({
+          where: { id },
+          select: { membershipId: true },
+        });
+        if (!current) {
+          throw new NotFoundException('Member not found');
+        }
+
+        const data: Prisma.MemberUpdateInput = { status: 'approved' };
+        if (!current.membershipId) {
+          const rows = await tx.$queryRaw<Array<{ membershipId: string }>>`
+            SELECT tnc_membership_id() AS "membershipId"
+          `;
+          const membershipId = rows[0]?.membershipId;
+          if (!membershipId) {
+            throw new Error('Could not assign a membership ID');
+          }
+          data.membershipId = membershipId;
+        }
+
+        const member = await tx.member.update({
+          where: { id },
+          data,
+          select: memberSelect,
+        });
+        return toMember(member);
+      });
+    } catch (error) {
+      throw mapMissing(error, 'Member not found');
+    }
   }
 
   async reject(id: string) {
@@ -174,16 +207,18 @@ export class MembersService {
     return { deleted: true as const };
   }
 
-  private async setStatus(id: string, status: 'approved') {
-    try {
-      const member = await this.prisma.member.update({
-        where: { id },
-        data: { status },
-        select: memberSelect,
-      });
-      return toMember(member);
-    } catch (error) {
-      throw mapMissing(error, 'Member not found');
+  private async requireUniqueName(firstName: string, lastName: string) {
+    const existing = await this.prisma.member.findFirst({
+      where: {
+        firstName: { equals: firstName, mode: 'insensitive' },
+        lastName: { equals: lastName, mode: 'insensitive' },
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new ConflictException(
+        'This information is already added. Please register a different member.',
+      );
     }
   }
 
