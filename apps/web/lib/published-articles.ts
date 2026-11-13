@@ -46,11 +46,16 @@ export const getPublishedArticle = cache(
   },
 );
 
-export async function publishedFileUrl(id: string): Promise<string | null> {
-  const response = await fetch(
-    `${apiBaseUrl()}/articles/published/${encodeURIComponent(id)}/file`,
-    { cache: "no-store" },
-  );
+export function publishedFileUrl(id: string): Promise<string | null> {
+  return signedUrl(`/articles/published/${encodeURIComponent(id)}/file`);
+}
+
+export function publishedCoverUrl(id: string): Promise<string | null> {
+  return signedUrl(`/articles/published/${encodeURIComponent(id)}/cover`);
+}
+
+async function signedUrl(path: string): Promise<string | null> {
+  const response = await fetch(`${apiBaseUrl()}${path}`, { cache: "no-store" });
   if (!response.ok) {
     return null;
   }

@@ -763,7 +763,7 @@ export function ArticleEditor({
               <CardTitle className="text-base font-semibold">Cover</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
-              <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-md border border-input bg-muted/40">
+              <div className="relative flex aspect-video items-center justify-center overflow-hidden rounded-md border border-input bg-muted/40">
                 {coverPreview ? (
                   <img
                     src={coverPreview}

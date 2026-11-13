@@ -11,6 +11,7 @@ export type Article = {
   type: ArticleType;
   articleStatus: ArticleStatus;
   uploadedAt: string;
+  imageKey: string | null;
 };
 
 export const ARTICLE_TYPE_LABELS: Record<ArticleType, string> = {

@@ -16,6 +16,7 @@ type PublicArticleRow = {
   uploadedAt: Date;
   sermonDate: Date | null;
   fileKey: string | null;
+  imageKey: string | null;
   series: { title: string } | null;
 };
 
@@ -37,6 +38,7 @@ export class ArticlesService {
         type: true,
         articleStatus: true,
         uploadedAt: true,
+        imageKey: true,
         series: { select: { title: true } },
       },
     });
@@ -49,6 +51,7 @@ export class ArticlesService {
       type: article.type,
       articleStatus: article.articleStatus,
       uploadedAt: article.uploadedAt.toISOString(),
+      imageKey: article.imageKey,
       series: article.series?.title ?? null,
     }));
   }
@@ -74,6 +77,7 @@ export class ArticlesService {
         uploadedAt: true,
         sermonDate: true,
         fileKey: true,
+        imageKey: true,
         series: { select: { title: true } },
       },
     });
@@ -96,6 +100,7 @@ export class ArticlesService {
         uploadedAt: true,
         sermonDate: true,
         fileKey: true,
+        imageKey: true,
         videoLink: true,
         audioLink: true,
         series: { select: { title: true } },
@@ -129,6 +134,22 @@ export class ArticlesService {
     }
 
     return this.storage.download(article.fileKey);
+  }
+
+  async publishedCover(id: string) {
+    const article = await this.prisma.article.findUnique({
+      where: { id },
+      select: { articleStatus: true, imageKey: true },
+    });
+    if (
+      !article ||
+      article.articleStatus !== 'published' ||
+      !article.imageKey
+    ) {
+      throw new NotFoundException('Article not found');
+    }
+
+    return this.storage.view(article.imageKey);
   }
 
   async create(body: unknown) {
@@ -211,6 +232,7 @@ function publicSummary(article: PublicArticleRow) {
     sermonDate: article.sermonDate?.toISOString() ?? null,
     series: article.series?.title ?? null,
     hasFile: Boolean(article.fileKey),
+    hasImage: Boolean(article.imageKey),
   };
 }
 

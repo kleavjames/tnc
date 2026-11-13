@@ -10,6 +10,7 @@ export type PublishedArticleSummary = {
   sermonDate: string | null;
   series: string | null;
   hasFile: boolean;
+  hasImage: boolean;
 };
 
 export type PublishedArticle = PublishedArticleSummary & {
@@ -82,7 +83,8 @@ export function isPublishedSummary(
     typeof record.uploadedAt === "string" &&
     (record.sermonDate === null || typeof record.sermonDate === "string") &&
     (record.series === null || typeof record.series === "string") &&
-    typeof record.hasFile === "boolean"
+    typeof record.hasFile === "boolean" &&
+    typeof record.hasImage === "boolean"
   );
 }
 
