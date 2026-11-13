@@ -1,4 +1,5 @@
 import { Card, CardContent } from "@repo/ui/components/card";
+import { cn } from "@repo/ui/lib/utils";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import {
   Table,
@@ -72,10 +73,10 @@ export default function GLCLoading() {
               >
                 <Skeleton className="h-8 w-full" />
               </TableHead>
-              <TableHead colSpan={4} className="border-r border-b bg-primary/15">
+              <TableHead colSpan={4} className="border-r border-b bg-muted/70">
                 <Skeleton className="mx-auto h-4 w-16" />
               </TableHead>
-              <TableHead colSpan={4} className="border-b bg-primary/15">
+              <TableHead colSpan={4} className="border-r border-b bg-primary/10">
                 <Skeleton className="mx-auto h-4 w-16" />
               </TableHead>
             </TableRow>
@@ -89,7 +90,11 @@ export default function GLCLoading() {
               {Array.from({ length: SESSION_COUNT }, (_, index) => (
                 <TableHead
                   key={index}
-                  className="min-w-16 border-b px-1 text-center"
+                  className={cn(
+                    "min-w-16 border-b px-1 text-center",
+                    index < 4 ? "bg-muted/70" : "bg-primary/10",
+                    (index === 3 || index === 7) && "border-r",
+                  )}
                 >
                   <Skeleton className="mx-auto h-7 w-10" />
                 </TableHead>
@@ -115,7 +120,14 @@ export default function GLCLoading() {
                   </div>
                 </TableCell>
                 {Array.from({ length: SESSION_COUNT }, (_, session) => (
-                  <TableCell key={session} className="text-center">
+                  <TableCell
+                    key={session}
+                    className={cn(
+                      "text-center",
+                      session < 4 ? "bg-muted/70" : "bg-primary/10",
+                      (session === 3 || session === 7) && "border-r",
+                    )}
+                  >
                     <Skeleton className="mx-auto size-4 rounded-[4px]" />
                   </TableCell>
                 ))}

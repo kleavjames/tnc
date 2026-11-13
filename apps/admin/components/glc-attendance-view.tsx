@@ -26,9 +26,11 @@ import {
   TableRow,
 } from "@repo/ui/components/table";
 import { ChoiceGroup } from "@repo/ui/choice-group";
+import { cn } from "@repo/ui/lib/utils";
 import { memberName } from "@/lib/member-display";
 import type {
   GlcAttendance,
+  GlcAttendanceBook,
   GlcAttendanceLevel,
   GlcAttendanceMember,
   GlcAttendanceSession,
@@ -74,7 +76,8 @@ export function GlcAttendanceView({
     levelId === ALL
       ? attendance.levels
       : attendance.levels.filter((level) => level.id === levelId);
-  const sessions = sessionsIn(levels);
+  const books = visibleBooks(levels);
+  const sessions = books.flatMap((column) => column.sessions);
   const branches = branchOptions(attendance.members);
   const visibleMembers = attendance.members
     .filter((member) => branchId === ALL || member.branch.id === branchId)
@@ -246,20 +249,19 @@ export function GlcAttendanceView({
                     />
                   </div>
                 </TableHead>
-                {levels.flatMap((level) =>
-                  level.books.map((book) =>
-                    book.sessions.length === 0 ? null : (
-                      <TableHead
-                        key={book.id}
-                        colSpan={book.sessions.length}
-                        title={book.title}
-                        className="border-r border-b bg-primary/15 text-center font-semibold whitespace-normal"
-                      >
-                        Book {book.number}
-                      </TableHead>
-                    ),
-                  ),
-                )}
+                {books.map((column) => (
+                  <TableHead
+                    key={column.book.id}
+                    colSpan={column.sessions.length}
+                    title={column.book.title}
+                    className={cn(
+                      "border-r border-b text-center font-bold text-primary whitespace-normal",
+                      bookTone(column.index),
+                    )}
+                  >
+                    Book {column.book.number}
+                  </TableHead>
+                ))}
               </TableRow>
               <TableRow className="hover:bg-transparent">
                 <TableHead className="sticky left-0 z-20 w-56 min-w-56 border-b bg-card text-xs font-bold tracking-wide text-muted-foreground uppercase">
@@ -268,16 +270,23 @@ export function GlcAttendanceView({
                 <TableHead className="sticky left-56 z-20 w-32 min-w-32 border-r border-b bg-card text-xs font-bold tracking-wide text-muted-foreground uppercase shadow-[4px_0_8px_-6px_rgba(0,0,0,0.28)]">
                   Progress
                 </TableHead>
-                {sessions.map((session) => (
-                  <TableHead
-                    key={session.id}
-                    title={session.title}
-                    className="min-w-16 border-b px-1 text-center text-xs font-medium whitespace-normal text-muted-foreground"
-                  >
-                    Session
-                    <span className="block">{session.number}</span>
-                  </TableHead>
-                ))}
+                {books.flatMap((column) =>
+                  column.sessions.map((session, sessionIndex) => (
+                    <TableHead
+                      key={session.id}
+                      title={session.title}
+                      className={cn(
+                        "min-w-16 border-b px-1 text-center text-xs font-medium whitespace-normal text-muted-foreground",
+                        bookTone(column.index),
+                        sessionIndex === column.sessions.length - 1 &&
+                          "border-r",
+                      )}
+                    >
+                      Session
+                      <span className="block">{session.number}</span>
+                    </TableHead>
+                  )),
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -334,28 +343,42 @@ export function GlcAttendanceView({
                         </span>
                       </div>
                     </TableCell>
-                    {sessions.map((session) => {
-                      const checked = isAttended(member, session.id, overrides);
-                      const key = `${member.id}:${session.id}`;
-                      return (
-                        <TableCell key={session.id} className="text-center">
-                          <div className="flex justify-center">
-                            <Checkbox
-                              checked={checked}
-                              disabled={savingKey === key}
-                              aria-label={`${memberName(member)}, ${session.title}`}
-                              onCheckedChange={(value) =>
-                                void setAttended(
-                                  member,
-                                  session.id,
-                                  value === true,
-                                )
-                              }
-                            />
-                          </div>
-                        </TableCell>
-                      );
-                    })}
+                    {books.flatMap((column) =>
+                      column.sessions.map((session, sessionIndex) => {
+                        const checked = isAttended(
+                          member,
+                          session.id,
+                          overrides,
+                        );
+                        const key = `${member.id}:${session.id}`;
+                        return (
+                          <TableCell
+                            key={session.id}
+                            className={cn(
+                              "text-center",
+                              bookTone(column.index),
+                              sessionIndex === column.sessions.length - 1 &&
+                                "border-r",
+                            )}
+                          >
+                            <div className="flex justify-center">
+                              <Checkbox
+                                checked={checked}
+                                disabled={savingKey === key}
+                                aria-label={`${memberName(member)}, ${session.title}`}
+                                onCheckedChange={(value) =>
+                                  void setAttended(
+                                    member,
+                                    session.id,
+                                    value === true,
+                                  )
+                                }
+                              />
+                            </div>
+                          </TableCell>
+                        );
+                      }),
+                    )}
                   </TableRow>
                 );
               })}
@@ -526,10 +549,33 @@ function FilterPills({
   );
 }
 
-function sessionsIn(levels: GlcAttendanceLevel[]): GlcAttendanceSession[] {
-  return levels.flatMap((level) =>
-    level.books.flatMap((book) => book.sessions),
-  );
+function visibleBooks(levels: GlcAttendanceLevel[]): {
+  book: GlcAttendanceBook;
+  index: number;
+  sessions: GlcAttendanceSession[];
+}[] {
+  const columns: {
+    book: GlcAttendanceBook;
+    index: number;
+    sessions: GlcAttendanceSession[];
+  }[] = [];
+  for (const level of levels) {
+    for (const book of level.books) {
+      if (book.sessions.length === 0) {
+        continue;
+      }
+      columns.push({
+        book,
+        index: columns.length,
+        sessions: book.sessions,
+      });
+    }
+  }
+  return columns;
+}
+
+function bookTone(index: number): string {
+  return index % 2 === 0 ? "bg-white" : "bg-muted/10";
 }
 
 function sessionCount(level: GlcAttendanceLevel): number {
