@@ -160,7 +160,7 @@ function ResourceCard({ article }: { article: PublishedArticleSummary }) {
 
   return (
     <Card className="h-full gap-0 py-0">
-      <Link href={`/resources/${article.id}`}>
+      <Link href={`/resources/${article.id}`} className="flex flex-1 flex-col">
         {article.hasImage ? (
           <img
             src={`/resources/${article.id}/cover`}
@@ -177,32 +177,26 @@ function ResourceCard({ article }: { article: PublishedArticleSummary }) {
             </p>
           </div>
         )}
-        <div className="flex flex-1 flex-col gap-3 p-5">
-          <div className="flex flex-col gap-1">
-            <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">
-              {articleLabel(article)}
-            </p>
-            <h2 className="text-lg leading-snug font-semibold">
-              {article.title}
-            </h2>
-            {meta ? (
-              <p className="text-sm text-muted-foreground">{meta}</p>
-            ) : null}
-          </div>
-          <div className="mt-auto flex items-center gap-3 border-t pt-3">
-            {article.hasFile ? (
-              <a
-                href={`/resources/${article.id}/file`}
-                className={buttonVariants({ variant: "outline", size: "sm" })}
-                aria-label={`Download ${article.title}`}
-              >
-                <DownloadIcon data-icon="inline-start" />
-                Download
-              </a>
-            ) : null}
-          </div>
+        <div className="flex flex-col gap-1 p-5">
+          <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+            {articleLabel(article)}
+          </p>
+          <h2 className="text-lg leading-snug font-semibold">{article.title}</h2>
+          {meta ? <p className="text-sm text-muted-foreground">{meta}</p> : null}
         </div>
       </Link>
+      {article.hasFile ? (
+        <div className="mt-auto flex items-center gap-3 border-t px-5 py-3">
+          <a
+            href={`/resources/${article.id}/file`}
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+            aria-label={`Download ${article.title}`}
+          >
+            <DownloadIcon data-icon="inline-start" />
+            Download
+          </a>
+        </div>
+      ) : null}
     </Card>
   );
 }
