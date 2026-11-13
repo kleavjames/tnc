@@ -790,7 +790,9 @@ export function ArticleEditor({
       const failed: ArticleFile = {
         ...nextFile,
         error:
-          error instanceof Error ? error.message : "Could not upload that file.",
+          error instanceof Error
+            ? error.message
+            : "Could not upload that file.",
       };
       if (languageRef.current !== uploadLanguage) {
         localesRef.current[uploadLanguage] = {
@@ -1214,7 +1216,7 @@ export function ArticleEditor({
               <CardTitle className="text-base font-semibold">
                 File · {languageLabel}
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-xs">
                 Saved with this language. Other languages keep their own file.
               </CardDescription>
             </CardHeader>
