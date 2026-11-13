@@ -136,6 +136,20 @@ export class StorageService {
     return { url, expiresAt: expiresAt() };
   }
 
+  async view(key: string): Promise<SignedUrl> {
+    assertUploadKey(key);
+    const url = await getSignedUrl(
+      this.client,
+      new GetObjectCommand({
+        Bucket: this.config.bucket,
+        Key: key,
+      }),
+      { expiresIn: URL_TTL_SECONDS },
+    );
+
+    return { url, expiresAt: expiresAt() };
+  }
+
   async remove(key: string): Promise<{ deleted: true }> {
     assertUploadKey(key);
     await this.client.send(

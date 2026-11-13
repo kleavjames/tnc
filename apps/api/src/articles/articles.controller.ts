@@ -30,6 +30,11 @@ export class ArticlesController {
     return this.articles.publishedFile(id);
   }
 
+  @Get('published/:id/cover')
+  publishedCover(@Param('id') id: string) {
+    return this.articles.publishedCover(id);
+  }
+
   @Get()
   @UseGuards(AuthGuard)
   list() {

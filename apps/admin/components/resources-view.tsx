@@ -57,6 +57,7 @@ import {
   type Article,
   type ArticleType,
 } from "../lib/articles";
+import { presignDownload } from "../lib/storage";
 
 type TypeFilter = "all" | ArticleType;
 type ViewMode = "list" | "covers";
@@ -67,21 +68,51 @@ const sortItems = [
   { label: "Title A–Z", value: "title" },
 ];
 
-function ResourceCover({ className }: { className?: string }) {
+function ResourceCover({
+  imageKey,
+  className,
+}: {
+  imageKey: string | null;
+  className?: string;
+}) {
+  const [src, setSrc] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!imageKey) {
+      setSrc(null);
+      return;
+    }
+    let cancel = false;
+    void presignDownload(imageKey)
+      .then((url) => {
+        if (!cancel) {
+          setSrc(url);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancel = true;
+    };
+  }, [imageKey]);
+
   return (
     <div
       className={cn(
-        "flex items-center justify-center overflow-hidden rounded-md bg-muted",
+        "relative flex items-center justify-center overflow-hidden rounded-md bg-muted",
         className,
       )}
     >
-      <Image
-        src="/tnc-logo-v2-transparent.png"
-        alt=""
-        width={80}
-        height={80}
-        className="size-1/2 object-contain"
-      />
+      {src ? (
+        <img src={src} alt="" className="absolute inset-0 size-full object-cover" />
+      ) : (
+        <Image
+          src="/tnc-logo-v2-transparent.png"
+          alt=""
+          width={80}
+          height={80}
+          className="size-1/2 object-contain"
+        />
+      )}
     </div>
   );
 }
@@ -427,7 +458,10 @@ function ResourcesTable({ articles }: { articles: Article[] }) {
             <TableRow key={article.id}>
               <TableCell>
                 <div className="flex items-center gap-3">
-                  <ResourceCover className="size-12 shrink-0" />
+                  <ResourceCover
+                    imageKey={article.imageKey}
+                    className="size-12 shrink-0"
+                  />
                   <div className="flex min-w-0 flex-col">
                     <span className="truncate font-medium">
                       {article.title}
@@ -460,7 +494,10 @@ function ResourcesCoverGrid({ articles }: { articles: Article[] }) {
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
       {articles.map((article) => (
         <Card key={article.id}>
-          <ResourceCover className="mx-4 aspect-[4/3]" />
+          <ResourceCover
+            imageKey={article.imageKey}
+            className="mx-4 aspect-[4/3]"
+          />
           <CardHeader>
             <div className="flex items-start justify-between gap-2">
               <div className="flex min-w-0 flex-col gap-1">
