@@ -3,8 +3,9 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { SearchIcon } from "lucide-react";
-import { cn } from "cn";
+import { MoreHorizontalIcon, SearchIcon, Trash2Icon } from "lucide-react";
+import { toast } from "sonner";
+import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import {
   Card,
@@ -13,10 +14,27 @@ import {
   CardTitle,
 } from "@repo/ui/components/card";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@repo/ui/components/dropdown-menu";
+import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
 } from "@repo/ui/components/input-group";
+import { Modal } from "@repo/ui/modal";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@repo/ui/components/pagination";
 import {
   Table,
   TableBody,
@@ -25,12 +43,8 @@ import {
   TableHeader,
   TableRow,
 } from "@repo/ui/components/table";
-import { ToggleGroup, ToggleGroupItem } from "@repo/ui/components/toggle-group";
-import {
-  branchLabel,
-  formatMemberDate,
-  memberName,
-} from "../lib/member-display";
+import { ChoiceGroup } from "@repo/ui/choice-group";
+import { branchLabel, memberName } from "../lib/member-display";
 import type { Member } from "../lib/members";
 
 const ALL = "all";
@@ -55,10 +69,17 @@ const CIVIL_STATUSES = [
   { value: "separated", label: "Separated" },
 ] as const;
 
-const selectedFilterClass =
-  "min-w-fit aria-pressed:bg-primary! aria-pressed:text-primary-foreground data-[state=on]:border-primary data-[state=on]:bg-primary! data-[state=on]:text-primary-foreground! data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground";
+const PAGE_SIZES = [25, 50, 75, 100] as const;
 
-export function MembersView({ members }: { members: Member[] }) {
+type PageSize = (typeof PAGE_SIZES)[number];
+
+export function MembersView({
+  members,
+  pendingCount,
+}: {
+  members: Member[];
+  pendingCount: number;
+}) {
   const router = useRouter();
   const [query, setQuery] = React.useState("");
   const [branchId, setBranchId] = React.useState(ALL);
@@ -68,10 +89,29 @@ export function MembersView({ members }: { members: Member[] }) {
     React.useState<(typeof DGROUP_LEADERS)[number]["value"]>(ALL);
   const [civilStatus, setCivilStatus] =
     React.useState<(typeof CIVIL_STATUSES)[number]["value"]>(ALL);
+  const [page, setPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState<PageSize>(25);
   const branches = churchBranches(members);
   const filters = { branchId, gender, dgroupLeader, civilStatus };
   const visibleMembers = filterMembers(members, query, filters);
   const filtersActive = Object.values(filters).some((value) => value !== ALL);
+  const pageCount = Math.max(1, Math.ceil(visibleMembers.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const pageStart = (currentPage - 1) * pageSize;
+  const pageMembers = visibleMembers.slice(pageStart, pageStart + pageSize);
+
+  function showPage(nextPage: number) {
+    setPage(Math.min(Math.max(nextPage, 1), pageCount));
+  }
+
+  function changePageSize(nextSize: string) {
+    const size = PAGE_SIZES.find((item) => String(item) === nextSize);
+    if (!size) {
+      return;
+    }
+    setPageSize(size);
+    setPage(1);
+  }
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-6 p-6 lg:p-8">
@@ -89,6 +129,9 @@ export function MembersView({ members }: { members: Member[] }) {
           render={<Link href="/members/pending" />}
         >
           Pending registrations
+          {pendingCount > 0 ? (
+            <Badge variant="secondary">{pendingCount}</Badge>
+          ) : null}
         </Button>
       </div>
 
@@ -102,7 +145,10 @@ export function MembersView({ members }: { members: Member[] }) {
               <InputGroup className="w-full max-w-sm justify-self-start rounded-md sm:col-span-3">
                 <InputGroupInput
                   value={query}
-                  onChange={(event) => setQuery(event.target.value)}
+                  onChange={(event) => {
+                    setQuery(event.target.value);
+                    setPage(1);
+                  }}
                   placeholder="Search name, mobile, or ID..."
                 />
                 <InputGroupAddon>
@@ -110,10 +156,10 @@ export function MembersView({ members }: { members: Member[] }) {
                 </InputGroupAddon>
               </InputGroup>
             </div>
-            <div className="flex flex-row gap-10">
+            <div className="flex flex-wrap gap-x-10 gap-y-4">
               {branches.length > 0 ? (
-                <FilterChoices
-                  fit
+                <FilterGroup
+                  id="member-branch"
                   label="Branch"
                   value={branchId}
                   options={[
@@ -123,35 +169,40 @@ export function MembersView({ members }: { members: Member[] }) {
                       label: branch.branch,
                     })),
                   ]}
-                  onValueChange={setBranchId}
+                  onChange={(value) => {
+                    setBranchId(value);
+                    setPage(1);
+                  }}
                 />
               ) : null}
-              <FilterChoices
-                fit
+              <FilterGroup
+                id="member-gender"
                 label="Gender"
                 value={gender}
                 options={GENDERS}
-                onValueChange={(value) => {
-                  if (isChoice(value, GENDERS)) setGender(value);
+                onChange={(value) => {
+                  setGender(value);
+                  setPage(1);
                 }}
               />
-              <FilterChoices
-                fit
+              <FilterGroup
+                id="member-dgroup-leader"
                 label="Dgroup leader"
                 value={dgroupLeader}
                 options={DGROUP_LEADERS}
-                onValueChange={(value) => {
-                  if (isChoice(value, DGROUP_LEADERS)) setDgroupLeader(value);
+                onChange={(value) => {
+                  setDgroupLeader(value);
+                  setPage(1);
                 }}
               />
-              <FilterChoices
-                fit
-                className="w-fit justify-self-start sm:col-span-3"
+              <FilterGroup
+                id="member-civil-status"
                 label="Civil status"
                 value={civilStatus}
                 options={CIVIL_STATUSES}
-                onValueChange={(value) => {
-                  if (isChoice(value, CIVIL_STATUSES)) setCivilStatus(value);
+                onChange={(value) => {
+                  setCivilStatus(value);
+                  setPage(1);
                 }}
               />
             </div>
@@ -184,12 +235,12 @@ export function MembersView({ members }: { members: Member[] }) {
                   Branch
                 </TableHead>
                 <TableHead className="font-bold text-muted-foreground">
-                  Registered
+                  Actions
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {visibleMembers.map((member) => (
+              {pageMembers.map((member) => (
                 <TableRow
                   key={member.id}
                   className="group cursor-pointer"
@@ -207,7 +258,9 @@ export function MembersView({ members }: { members: Member[] }) {
                   <TableCell>{member.mobileNumber}</TableCell>
                   <TableCell>{member.email ?? "—"}</TableCell>
                   <TableCell>{branchLabel(member.branch)}</TableCell>
-                  <TableCell>{formatMemberDate(member.createdAt)}</TableCell>
+                  <TableCell onClick={(event) => event.stopPropagation()}>
+                    <MemberActions member={member} />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -215,63 +268,240 @@ export function MembersView({ members }: { members: Member[] }) {
         </div>
       )}
 
-      <p className="text-sm text-muted-foreground">
-        Showing {visibleMembers.length} of {members.length} members
-      </p>
+      {visibleMembers.length > 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            Showing {pageStart + 1}–{pageStart + pageMembers.length} of{" "}
+            {visibleMembers.length} members
+          </p>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-muted-foreground">Rows</p>
+              <ChoiceGroup
+                id="member-page-size"
+                label="Rows per page"
+                size="xs"
+                value={String(pageSize)}
+                options={PAGE_SIZES.map((size) => ({
+                  value: String(size),
+                  label: String(size),
+                }))}
+                onChange={changePageSize}
+              />
+            </div>
+            <MembersPagination
+              page={currentPage}
+              pageCount={pageCount}
+              onPageChange={showPage}
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
 
-function FilterChoices({
-  className,
-  fit = false,
+function MemberActions({ member }: { member: Member }) {
+  const router = useRouter();
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const name = memberName(member);
+
+  function onOpenChange(open: boolean) {
+    if (deleting) {
+      return;
+    }
+    setConfirmOpen(open);
+    if (!open) {
+      setError(null);
+    }
+  }
+
+  async function remove() {
+    setDeleting(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/members/${encodeURIComponent(member.id)}`,
+        { method: "DELETE" },
+      );
+      if (!response.ok) {
+        setError("Could not delete this member. Please try again.");
+        return;
+      }
+      toast.success("Member deleted.");
+      setConfirmOpen(false);
+      router.refresh();
+    } catch {
+      setError("Could not delete this member. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <>
+      <Modal
+        open={confirmOpen}
+        onOpenChange={onOpenChange}
+        icon={<Trash2Icon />}
+        title="Delete member"
+        description="This action cannot be undone."
+        confirmLabel={deleting ? "Deleting..." : "Delete"}
+        pending={deleting}
+        onConfirm={() => void remove()}
+      >
+        <p>
+          You are about to permanently delete{" "}
+          <span className="font-semibold text-foreground">“{name}”</span>. They
+          will no longer be in the members database.
+          {member.isDgroupLeader
+            ? " Meetings they lead will be removed as well."
+            : null}
+        </p>
+        {error ? <p className="text-destructive">{error}</p> : null}
+      </Modal>
+      <DropdownMenu>
+        <DropdownMenuTrigger render={<Button variant="ghost" size="icon" />}>
+          <MoreHorizontalIcon />
+          <span className="sr-only">Open actions for {name}</span>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-40">
+          <DropdownMenuGroup>
+            <DropdownMenuItem
+              onClick={() => router.push(`/members/${member.id}?edit=1`)}
+            >
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => setConfirmOpen(true)}
+            >
+              Delete
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => router.push(`/members/${member.id}?tab=glc`)}
+            >
+              GLC progress
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => router.push(`/members/${member.id}?tab=dgroup`)}
+            >
+              DGroups
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
+  );
+}
+
+function MembersPagination({
+  page,
+  pageCount,
+  onPageChange,
+}: {
+  page: number;
+  pageCount: number;
+  onPageChange: (page: number) => void;
+}) {
+  return (
+    <Pagination className="mx-0 w-auto justify-end">
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious
+            href="#"
+            aria-disabled={page === 1}
+            className={page === 1 ? "pointer-events-none opacity-50" : undefined}
+            onClick={(event) => {
+              event.preventDefault();
+              onPageChange(page - 1);
+            }}
+          />
+        </PaginationItem>
+        {pageList(page, pageCount).map((item, index) => (
+          <PaginationItem key={item === "ellipsis" ? `ellipsis-${index}` : item}>
+            {item === "ellipsis" ? (
+              <PaginationEllipsis />
+            ) : (
+              <PaginationLink
+                href="#"
+                isActive={item === page}
+                onClick={(event) => {
+                  event.preventDefault();
+                  onPageChange(item);
+                }}
+              >
+                {item}
+              </PaginationLink>
+            )}
+          </PaginationItem>
+        ))}
+        <PaginationItem>
+          <PaginationNext
+            href="#"
+            aria-disabled={page === pageCount}
+            className={
+              page === pageCount ? "pointer-events-none opacity-50" : undefined
+            }
+            onClick={(event) => {
+              event.preventDefault();
+              onPageChange(page + 1);
+            }}
+          />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
+  );
+}
+
+function pageList(page: number, pageCount: number): Array<number | "ellipsis"> {
+  if (pageCount <= 7) {
+    return Array.from({ length: pageCount }, (_, index) => index + 1);
+  }
+
+  const items: Array<number | "ellipsis"> = [1];
+  const start = Math.max(2, page - 1);
+  const end = Math.min(pageCount - 1, page + 1);
+  if (start > 2) {
+    items.push("ellipsis");
+  }
+  for (let number = start; number <= end; number += 1) {
+    items.push(number);
+  }
+  if (end < pageCount - 1) {
+    items.push("ellipsis");
+  }
+  items.push(pageCount);
+  return items;
+}
+
+function FilterGroup<T extends string>({
+  id,
   label,
   value,
   options,
-  onValueChange,
+  onChange,
 }: {
-  className?: string;
-  fit?: boolean;
+  id: string;
   label: string;
-  value: string;
-  options: readonly { value: string; label: string }[];
-  onValueChange: (value: string) => void;
+  value: T;
+  options: readonly { value: T; label: string }[];
+  onChange: (value: T) => void;
 }) {
   return (
-    <div className={cn("flex min-w-0 flex-col gap-2", className)}>
+    <div className="flex min-w-0 flex-col gap-2">
       <p className="text-sm font-medium">{label}</p>
-      <div className="max-w-full overflow-x-auto">
-        <ToggleGroup
-          className={fit ? "w-fit" : "w-full"}
-          variant="outline"
-          spacing={0}
-          aria-label={label}
-          value={[value]}
-          onValueChange={(next) => {
-            const choice = next[0];
-            if (choice) onValueChange(choice);
-          }}
-        >
-          {options.map((option) => (
-            <ToggleGroupItem
-              key={option.value}
-              value={option.value}
-              className={cn(selectedFilterClass, !fit && "flex-1")}
-            >
-              {option.label}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      </div>
+      <ChoiceGroup
+        id={id}
+        label={label}
+        value={value}
+        options={options}
+        onChange={onChange}
+      />
     </div>
   );
-}
-
-function isChoice<T extends string>(
-  value: string,
-  options: readonly { value: T }[],
-): value is T {
-  return options.some((option) => option.value === value);
 }
 
 function churchBranches(members: Member[]): Member["branch"][] {

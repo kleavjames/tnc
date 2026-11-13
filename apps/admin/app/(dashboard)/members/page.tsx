@@ -7,6 +7,11 @@ export const metadata: Metadata = {
 };
 
 export default async function MembersPage() {
-  const members = await listMembers("approved");
-  return <MembersView members={members} />;
+  const [members, pendingMembers] = await Promise.all([
+    listMembers("approved"),
+    listMembers("pending"),
+  ]);
+  return (
+    <MembersView members={members} pendingCount={pendingMembers.length} />
+  );
 }

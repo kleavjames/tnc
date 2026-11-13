@@ -44,6 +44,19 @@ type ProgressRow = {
   sessions: { sessionId: string; attended: boolean }[];
 };
 
+export type GlcAttendanceMember = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  branch: { id: string; name: string; branch: string };
+  attendedSessionIds: string[];
+};
+
+export type GlcAttendanceView = {
+  levels: CurriculumLevel[];
+  members: GlcAttendanceMember[];
+};
+
 export type GlcProgressView = {
   id: string;
   memberId: string;
@@ -71,6 +84,45 @@ export type GlcProgressView = {
 @Injectable()
 export class GlcService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async listAttendance(): Promise<GlcAttendanceView> {
+    const [levels, rows] = await Promise.all([
+      this.prisma.glc.findMany({
+        orderBy: { level: 'asc' },
+        select: curriculumSelect,
+      }) as Promise<CurriculumLevel[]>,
+      this.prisma.glcProgress.findMany({
+        select: {
+          sessions: { select: { sessionId: true, attended: true } },
+          member: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              branch: { select: { id: true, name: true, branch: true } },
+            },
+          },
+        },
+        orderBy: [
+          { member: { lastName: 'asc' } },
+          { member: { firstName: 'asc' } },
+        ],
+      }),
+    ]);
+
+    return {
+      levels,
+      members: rows.map((row) => ({
+        id: row.member.id,
+        firstName: row.member.firstName,
+        lastName: row.member.lastName,
+        branch: row.member.branch,
+        attendedSessionIds: row.sessions
+          .filter((session) => session.attended)
+          .map((session) => session.sessionId),
+      })),
+    };
+  }
 
   async getProgress(memberId: string): Promise<GlcProgressView> {
     const progress = await this.findProgress(memberId);
