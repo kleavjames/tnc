@@ -4,7 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SearchIcon } from "lucide-react";
-import { cn } from "cn";
 import { Button } from "@repo/ui/components/button";
 import {
   Card,
@@ -25,7 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@repo/ui/components/table";
-import { ToggleGroup, ToggleGroupItem } from "@repo/ui/components/toggle-group";
+import { ChoiceGroup } from "@repo/ui/choice-group";
 import {
   branchLabel,
   formatMemberDate,
@@ -54,9 +53,6 @@ const CIVIL_STATUSES = [
   { value: "widowed", label: "Widowed" },
   { value: "separated", label: "Separated" },
 ] as const;
-
-const selectedFilterClass =
-  "min-w-fit aria-pressed:bg-primary! aria-pressed:text-primary-foreground data-[state=on]:border-primary data-[state=on]:bg-primary! data-[state=on]:text-primary-foreground! data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground";
 
 export function MembersView({ members }: { members: Member[] }) {
   const router = useRouter();
@@ -110,10 +106,10 @@ export function MembersView({ members }: { members: Member[] }) {
                 </InputGroupAddon>
               </InputGroup>
             </div>
-            <div className="flex flex-row gap-10">
+            <div className="flex flex-wrap gap-x-10 gap-y-4">
               {branches.length > 0 ? (
-                <FilterChoices
-                  fit
+                <FilterGroup
+                  id="member-branch"
                   label="Branch"
                   value={branchId}
                   options={[
@@ -123,36 +119,29 @@ export function MembersView({ members }: { members: Member[] }) {
                       label: branch.branch,
                     })),
                   ]}
-                  onValueChange={setBranchId}
+                  onChange={setBranchId}
                 />
               ) : null}
-              <FilterChoices
-                fit
+              <FilterGroup
+                id="member-gender"
                 label="Gender"
                 value={gender}
                 options={GENDERS}
-                onValueChange={(value) => {
-                  if (isChoice(value, GENDERS)) setGender(value);
-                }}
+                onChange={setGender}
               />
-              <FilterChoices
-                fit
+              <FilterGroup
+                id="member-dgroup-leader"
                 label="Dgroup leader"
                 value={dgroupLeader}
                 options={DGROUP_LEADERS}
-                onValueChange={(value) => {
-                  if (isChoice(value, DGROUP_LEADERS)) setDgroupLeader(value);
-                }}
+                onChange={setDgroupLeader}
               />
-              <FilterChoices
-                fit
-                className="w-fit justify-self-start sm:col-span-3"
+              <FilterGroup
+                id="member-civil-status"
                 label="Civil status"
                 value={civilStatus}
                 options={CIVIL_STATUSES}
-                onValueChange={(value) => {
-                  if (isChoice(value, CIVIL_STATUSES)) setCivilStatus(value);
-                }}
+                onChange={setCivilStatus}
               />
             </div>
           </CardContent>
@@ -222,56 +211,31 @@ export function MembersView({ members }: { members: Member[] }) {
   );
 }
 
-function FilterChoices({
-  className,
-  fit = false,
+function FilterGroup<T extends string>({
+  id,
   label,
   value,
   options,
-  onValueChange,
+  onChange,
 }: {
-  className?: string;
-  fit?: boolean;
+  id: string;
   label: string;
-  value: string;
-  options: readonly { value: string; label: string }[];
-  onValueChange: (value: string) => void;
+  value: T;
+  options: readonly { value: T; label: string }[];
+  onChange: (value: T) => void;
 }) {
   return (
-    <div className={cn("flex min-w-0 flex-col gap-2", className)}>
+    <div className="flex min-w-0 flex-col gap-2">
       <p className="text-sm font-medium">{label}</p>
-      <div className="max-w-full overflow-x-auto">
-        <ToggleGroup
-          className={fit ? "w-fit" : "w-full"}
-          variant="outline"
-          spacing={0}
-          aria-label={label}
-          value={[value]}
-          onValueChange={(next) => {
-            const choice = next[0];
-            if (choice) onValueChange(choice);
-          }}
-        >
-          {options.map((option) => (
-            <ToggleGroupItem
-              key={option.value}
-              value={option.value}
-              className={cn(selectedFilterClass, !fit && "flex-1")}
-            >
-              {option.label}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      </div>
+      <ChoiceGroup
+        id={id}
+        label={label}
+        value={value}
+        options={options}
+        onChange={onChange}
+      />
     </div>
   );
-}
-
-function isChoice<T extends string>(
-  value: string,
-  options: readonly { value: T }[],
-): value is T {
-  return options.some((option) => option.value === value);
 }
 
 function churchBranches(members: Member[]): Member["branch"][] {
