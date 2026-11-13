@@ -2,8 +2,10 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { Trash2Icon } from "lucide-react";
 import { Button } from "@repo/ui/components/button";
 import { Checkbox } from "@repo/ui/components/checkbox";
+import { Modal } from "@repo/ui/modal";
 import { toast } from "sonner";
 import {
   Field,
@@ -20,7 +22,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/ui/components/select";
-import { branchLabel, formatMemberDate, labelize } from "@/lib/member-display";
+import {
+  branchLabel,
+  formatMemberDate,
+  labelize,
+  memberName,
+} from "@/lib/member-display";
 import type { ChurchBranch } from "@/lib/church-branches";
 import type { Member } from "@/lib/members";
 
@@ -55,18 +62,24 @@ type Draft = {
 export function MemberPersonalTab({
   member: initialMember,
   branches,
+  startEditing = false,
 }: {
   member: Member;
   branches: ChurchBranch[];
+  startEditing?: boolean;
 }) {
   const router = useRouter();
   const [member, setMember] = React.useState(initialMember);
-  const [editing, setEditing] = React.useState(false);
+  const [editing, setEditing] = React.useState(startEditing);
   const [draft, setDraft] = React.useState<Draft>(() =>
     draftFromMember(member),
   );
   const [saving, setSaving] = React.useState(false);
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const busy = saving || deleting;
 
   React.useEffect(() => {
     setMember(initialMember);
@@ -128,6 +141,38 @@ export function MemberPersonalTab({
     }
   }
 
+  function onDeleteOpenChange(open: boolean) {
+    if (deleting) {
+      return;
+    }
+    setConfirmDelete(open);
+    if (!open) {
+      setDeleteError(null);
+    }
+  }
+
+  async function remove() {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const response = await fetch(
+        `/api/members/${encodeURIComponent(member.id)}`,
+        { method: "DELETE" },
+      );
+      if (!response.ok) {
+        setDeleteError("Could not delete this member. Please try again.");
+        return;
+      }
+      toast.success("Member deleted.");
+      router.push(member.status === "pending" ? "/members/pending" : "/members");
+      router.refresh();
+    } catch {
+      setDeleteError("Could not delete this member. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   const branchItems = branches.map((branch) => ({
     value: branch.id,
     label: branchLabel(branch),
@@ -144,12 +189,20 @@ export function MemberPersonalTab({
             <Button
               type="button"
               variant="outline"
-              disabled={saving}
+              disabled={busy}
               onClick={cancelEdit}
             >
               Cancel
             </Button>
-            <Button type="button" disabled={saving} onClick={() => void save()}>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={busy}
+              onClick={() => setConfirmDelete(true)}
+            >
+              Delete member
+            </Button>
+            <Button type="button" disabled={busy} onClick={() => void save()}>
               Save
             </Button>
           </div>
@@ -165,6 +218,29 @@ export function MemberPersonalTab({
           {error}
         </p>
       ) : null}
+
+      <Modal
+        open={confirmDelete}
+        onOpenChange={onDeleteOpenChange}
+        icon={<Trash2Icon />}
+        title="Delete member"
+        description="This action cannot be undone."
+        confirmLabel={deleting ? "Deleting..." : "Delete"}
+        pending={deleting}
+        onConfirm={() => void remove()}
+      >
+        <p>
+          You are about to permanently delete{" "}
+          <span className="font-semibold text-foreground">
+            “{memberName(member)}”
+          </span>
+          . They will no longer be in the members database.
+          {member.isDgroupLeader
+            ? " Meetings they lead will be removed as well."
+            : null}
+        </p>
+        {deleteError ? <p className="text-destructive">{deleteError}</p> : null}
+      </Modal>
 
       {editing ? (
         <FieldGroup>

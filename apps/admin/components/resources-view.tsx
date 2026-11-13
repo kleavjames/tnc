@@ -34,6 +34,16 @@ import {
   InputGroupInput,
 } from "@repo/ui/components/input-group";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@repo/ui/components/pagination";
+import { ChoiceGroup } from "@repo/ui/choice-group";
+import {
   Select,
   SelectContent,
   SelectGroup,
@@ -62,6 +72,10 @@ import { presignDownload } from "../lib/storage";
 
 type TypeFilter = "all" | ArticleType;
 type ViewMode = "list" | "covers";
+
+const PAGE_SIZES = [25, 50, 75, 100] as const;
+
+type PageSize = (typeof PAGE_SIZES)[number];
 
 const sortItems = [
   { label: "Newest first", value: "newest" },
@@ -276,6 +290,8 @@ export function ResourcesView({ articles }: { articles: Article[] }) {
   const [query, setQuery] = React.useState("");
   const [series, setSeries] = React.useState("all");
   const [sort, setSort] = React.useState("newest");
+  const [page, setPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState<PageSize>(25);
 
   const typeTabs = [
     { value: "all" as const, label: "All", count: articles.length },
@@ -300,6 +316,23 @@ export function ResourcesView({ articles }: { articles: Article[] }) {
     series,
     sort,
   });
+  const pageCount = Math.max(1, Math.ceil(visibleArticles.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const pageStart = (currentPage - 1) * pageSize;
+  const pageArticles = visibleArticles.slice(pageStart, pageStart + pageSize);
+
+  function showPage(nextPage: number) {
+    setPage(Math.min(Math.max(nextPage, 1), pageCount));
+  }
+
+  function changePageSize(nextSize: string) {
+    const size = PAGE_SIZES.find((item) => String(item) === nextSize);
+    if (!size) {
+      return;
+    }
+    setPageSize(size);
+    setPage(1);
+  }
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-6 lg:p-8">
@@ -307,7 +340,10 @@ export function ResourcesView({ articles }: { articles: Article[] }) {
         <InputGroup className="max-w-md rounded-md">
           <InputGroupInput
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setPage(1);
+            }}
             placeholder="Search title or scripture..."
           />
           <InputGroupAddon>
@@ -355,7 +391,10 @@ export function ResourcesView({ articles }: { articles: Article[] }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Tabs
           value={type}
-          onValueChange={(value) => setType(value as TypeFilter)}
+          onValueChange={(value) => {
+            setType(value as TypeFilter);
+            setPage(1);
+          }}
         >
           <TabsList variant="line" className="gap-2">
             {typeTabs.map((tab) => (
@@ -376,6 +415,7 @@ export function ResourcesView({ articles }: { articles: Article[] }) {
             onValueChange={(value) => {
               if (typeof value === "string") {
                 setSeries(value);
+                setPage(1);
               }
             }}
           >
@@ -398,6 +438,7 @@ export function ResourcesView({ articles }: { articles: Article[] }) {
             onValueChange={(value) => {
               if (typeof value === "string") {
                 setSort(value);
+                setPage(1);
               }
             }}
           >
@@ -424,16 +465,122 @@ export function ResourcesView({ articles }: { articles: Article[] }) {
             : "No articles match these filters."}
         </p>
       ) : view === "list" ? (
-        <ResourcesTable articles={visibleArticles} />
+        <ResourcesTable articles={pageArticles} />
       ) : (
-        <ResourcesCoverGrid articles={visibleArticles} />
+        <ResourcesCoverGrid articles={pageArticles} />
       )}
 
-      <p className="text-sm text-muted-foreground">
-        Showing {visibleArticles.length} of {articles.length} articles
-      </p>
+      {visibleArticles.length > 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            Showing {pageStart + 1}–{pageStart + pageArticles.length} of{" "}
+            {visibleArticles.length} articles
+          </p>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-muted-foreground">Rows</p>
+              <ChoiceGroup
+                id="resource-page-size"
+                label="Rows per page"
+                size="xs"
+                value={String(pageSize)}
+                options={PAGE_SIZES.map((size) => ({
+                  value: String(size),
+                  label: String(size),
+                }))}
+                onChange={changePageSize}
+              />
+            </div>
+            <ResourcesPagination
+              page={currentPage}
+              pageCount={pageCount}
+              onPageChange={showPage}
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
+}
+
+function ResourcesPagination({
+  page,
+  pageCount,
+  onPageChange,
+}: {
+  page: number;
+  pageCount: number;
+  onPageChange: (page: number) => void;
+}) {
+  return (
+    <Pagination className="mx-0 w-auto justify-end">
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious
+            href="#"
+            aria-disabled={page === 1}
+            className={page === 1 ? "pointer-events-none opacity-50" : undefined}
+            onClick={(event) => {
+              event.preventDefault();
+              onPageChange(page - 1);
+            }}
+          />
+        </PaginationItem>
+        {pageList(page, pageCount).map((item, index) => (
+          <PaginationItem key={item === "ellipsis" ? `ellipsis-${index}` : item}>
+            {item === "ellipsis" ? (
+              <PaginationEllipsis />
+            ) : (
+              <PaginationLink
+                href="#"
+                isActive={item === page}
+                onClick={(event) => {
+                  event.preventDefault();
+                  onPageChange(item);
+                }}
+              >
+                {item}
+              </PaginationLink>
+            )}
+          </PaginationItem>
+        ))}
+        <PaginationItem>
+          <PaginationNext
+            href="#"
+            aria-disabled={page === pageCount}
+            className={
+              page === pageCount ? "pointer-events-none opacity-50" : undefined
+            }
+            onClick={(event) => {
+              event.preventDefault();
+              onPageChange(page + 1);
+            }}
+          />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
+  );
+}
+
+function pageList(page: number, pageCount: number): Array<number | "ellipsis"> {
+  if (pageCount <= 7) {
+    return Array.from({ length: pageCount }, (_, index) => index + 1);
+  }
+
+  const items: Array<number | "ellipsis"> = [1];
+  const start = Math.max(2, page - 1);
+  const end = Math.min(pageCount - 1, page + 1);
+  if (start > 2) {
+    items.push("ellipsis");
+  }
+  for (let number = start; number <= end; number += 1) {
+    items.push(number);
+  }
+  if (end < pageCount - 1) {
+    items.push("ellipsis");
+  }
+  items.push(pageCount);
+  return items;
 }
 
 function ResourcesTable({ articles }: { articles: Article[] }) {

@@ -12,3 +12,8 @@ export async function PATCH(request: Request, context: RouteContext) {
     "PATCH",
   );
 }
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const { id } = await context.params;
+  return proxyJson(undefined, `/members/${encodeURIComponent(id)}`, "DELETE");
+}

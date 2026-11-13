@@ -31,10 +31,14 @@ export const metadata: Metadata = {
 
 export default async function MemberPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string; edit?: string }>;
 }) {
   const { id } = await params;
+  const { tab, edit } = await searchParams;
+  const activeTab = tab === "dgroup" || tab === "glc" ? tab : "personal";
   const [member, branches, progress] = await Promise.all([
     getMember(id),
     listChurchBranches(),
@@ -80,7 +84,7 @@ export default async function MemberPage({
           </div>
         </header>
 
-        <Tabs defaultValue="personal" className="gap-8">
+        <Tabs defaultValue={activeTab} className="gap-8">
           <TabsList variant="line" className="gap-2">
             <TabsTrigger value="personal">Personal Information</TabsTrigger>
             <TabsTrigger value="dgroup">Dgroup Meetings</TabsTrigger>
@@ -88,7 +92,11 @@ export default async function MemberPage({
           </TabsList>
 
           <TabsContent value="personal" className="flex flex-col gap-10">
-            <MemberPersonalTab member={member} branches={branches} />
+            <MemberPersonalTab
+              member={member}
+              branches={branches}
+              startEditing={edit === "1"}
+            />
           </TabsContent>
 
           <TabsContent value="dgroup">

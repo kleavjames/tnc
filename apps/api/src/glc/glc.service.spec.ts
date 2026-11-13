@@ -157,4 +157,53 @@ describe('GlcService', () => {
       }).remove('m1'),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
+
+  it('lists curriculum and members who started GLC', async () => {
+    const findManyProgress = vi.fn().mockResolvedValue([
+      {
+        sessions: [
+          { sessionId: 's1', attended: true },
+          { sessionId: 's2', attended: false },
+        ],
+        member: {
+          id: 'm1',
+          firstName: 'Bea',
+          lastName: 'Ramos',
+          branch: { id: 'br1', name: 'TNC', branch: 'Northgate' },
+        },
+      },
+    ]);
+    const result = await service({
+      glcProgress: { findMany: findManyProgress },
+      glc: { findMany: vi.fn().mockResolvedValue(curriculum) },
+    }).listAttendance();
+
+    expect(findManyProgress).toHaveBeenCalledWith({
+      select: {
+        sessions: { select: { sessionId: true, attended: true } },
+        member: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            branch: { select: { id: true, name: true, branch: true } },
+          },
+        },
+      },
+      orderBy: [
+        { member: { lastName: 'asc' } },
+        { member: { firstName: 'asc' } },
+      ],
+    });
+    expect(result.levels).toEqual(curriculum);
+    expect(result.members).toEqual([
+      {
+        id: 'm1',
+        firstName: 'Bea',
+        lastName: 'Ramos',
+        branch: { id: 'br1', name: 'TNC', branch: 'Northgate' },
+        attendedSessionIds: ['s1'],
+      },
+    ]);
+  });
 });

@@ -16,6 +16,11 @@ import { GlcService } from './glc.service.js';
 export class GlcController {
   constructor(private readonly glc: GlcService) {}
 
+  @Get('attendance')
+  listAttendance() {
+    return this.glc.listAttendance();
+  }
+
   @Post('members/:memberId/progress')
   start(@Param('memberId') memberId: string) {
     return this.glc.start(memberId);
