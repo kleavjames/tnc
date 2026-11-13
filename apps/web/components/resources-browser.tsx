@@ -160,46 +160,49 @@ function ResourceCard({ article }: { article: PublishedArticleSummary }) {
 
   return (
     <Card className="h-full gap-0 py-0">
-      <div className="flex min-h-52 flex-col items-center justify-center gap-3 bg-muted px-6 py-10 text-center">
-        <p className="text-xs font-semibold tracking-[0.16em] text-primary uppercase">
-          {formatCoverDate(articleDate(article))}
-        </p>
-        <p className="text-2xl leading-tight font-extrabold tracking-tight text-balance uppercase">
-          {article.title}
-        </p>
-      </div>
-      <div className="flex flex-1 flex-col gap-3 p-5">
-        <div className="flex flex-col gap-1">
-          <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">
-            {articleLabel(article)}
-          </p>
-          <h2 className="text-lg leading-snug font-semibold">
-            <Link href={`/resources/${article.id}`} className="hover:underline">
+      <Link href={`/resources/${article.id}`}>
+        {article.hasImage ? (
+          <img
+            src={`/resources/${article.id}/cover`}
+            alt=""
+            className="aspect-video w-full object-cover"
+          />
+        ) : (
+          <div className="flex min-h-49 flex-col items-center justify-center gap-3 bg-muted px-6 py-10 text-center">
+            <p className="text-xs font-semibold tracking-[0.16em] text-primary uppercase">
+              {formatCoverDate(articleDate(article))}
+            </p>
+            <p className="text-2xl leading-tight font-extrabold tracking-tight text-balance uppercase">
               {article.title}
-            </Link>
-          </h2>
-          {meta ? <p className="text-sm text-muted-foreground">{meta}</p> : null}
+            </p>
+          </div>
+        )}
+        <div className="flex flex-1 flex-col gap-3 p-5">
+          <div className="flex flex-col gap-1">
+            <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+              {articleLabel(article)}
+            </p>
+            <h2 className="text-lg leading-snug font-semibold">
+              {article.title}
+            </h2>
+            {meta ? (
+              <p className="text-sm text-muted-foreground">{meta}</p>
+            ) : null}
+          </div>
+          <div className="mt-auto flex items-center gap-3 border-t pt-3">
+            {article.hasFile ? (
+              <a
+                href={`/resources/${article.id}/file`}
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+                aria-label={`Download ${article.title}`}
+              >
+                <DownloadIcon data-icon="inline-start" />
+                Download
+              </a>
+            ) : null}
+          </div>
         </div>
-        <div className="mt-auto flex items-center gap-3 border-t pt-3">
-          {article.hasFile ? (
-            <a
-              href={`/resources/${article.id}/file`}
-              className={buttonVariants({ variant: "outline", size: "sm" })}
-              aria-label={`Download ${article.title}`}
-            >
-              <DownloadIcon data-icon="inline-start" />
-              Download
-            </a>
-          ) : null}
-          <Link
-            href={`/resources/${article.id}`}
-            className="ml-auto inline-flex items-center gap-1 text-sm font-semibold text-primary"
-          >
-            Read
-            <ArrowRightIcon className="size-4" />
-          </Link>
-        </div>
-      </div>
+      </Link>
     </Card>
   );
 }

@@ -21,7 +21,10 @@ const published = {
 
 function service(
   prisma: object,
-  storage: { download: (key: string) => Promise<unknown> } = {
+  storage: {
+    download?: (key: string) => Promise<unknown>;
+    view?: (key: string) => Promise<unknown>;
+  } = {
     download: async () => ({
       url: 'https://files.example/notes.pdf',
       expiresAt: 'soon',
@@ -31,11 +34,62 @@ function service(
   return new ArticlesService(prisma as never, storage as never);
 }
 
+describe('admin article list', () => {
+  it('includes each cover image key', async () => {
+    const findMany = vi.fn().mockResolvedValue([
+      {
+        id: 'a1',
+        title: 'Room for Him',
+        subtitle: 'Advent',
+        verse: 'Luke 2:1-7',
+        type: 'sermon',
+        articleStatus: 'draft',
+        uploadedAt: new Date('2025-12-14T00:00:00.000Z'),
+        imageKey: 'uploads/cover.jpg',
+        series: { title: 'Emmanuel' },
+      },
+      {
+        id: 'a2',
+        title: 'Notes',
+        subtitle: '',
+        verse: 'John 1',
+        type: 'glc',
+        articleStatus: 'published',
+        uploadedAt: new Date('2025-12-15T00:00:00.000Z'),
+        imageKey: null,
+        series: null,
+      },
+    ]);
+
+    const list = await service({ article: { findMany } }).list();
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({ imageKey: true }),
+      }),
+    );
+    expect(list).toEqual([
+      expect.objectContaining({
+        id: 'a1',
+        imageKey: 'uploads/cover.jpg',
+        series: 'Emmanuel',
+      }),
+      expect.objectContaining({ id: 'a2', imageKey: null, series: null }),
+    ]);
+  });
+});
+
 describe('published articles', () => {
   it('lists published articles without storage keys or body', async () => {
     const findMany = vi.fn().mockResolvedValue([
       published,
-      { ...published, id: 'a2', fileKey: null, series: null },
+      {
+        ...published,
+        id: 'a2',
+        fileKey: null,
+        imageKey: null,
+        series: null,
+      },
     ]);
     const list = await service({ article: { findMany } }).listPublished();
 
@@ -55,8 +109,13 @@ describe('published articles', () => {
       sermonDate: '2025-12-07T00:00:00.000Z',
       series: 'Emmanuel',
       hasFile: true,
+      hasImage: true,
     });
-    expect(list[1]).toMatchObject({ series: null, hasFile: false });
+    expect(list[1]).toMatchObject({
+      series: null,
+      hasFile: false,
+      hasImage: false,
+    });
     expect(JSON.stringify(list)).not.toContain('uploads/');
     expect(list[0]).not.toHaveProperty('body');
     expect(list[0]).not.toHaveProperty('fileKey');
@@ -75,6 +134,7 @@ describe('published articles', () => {
       tags: ['advent'],
       fileName: 'notes.pdf',
       hasFile: true,
+      hasImage: true,
       series: 'Emmanuel',
       videoLink: 'https://youtube.com/live/tn-dec28',
       audioLink: 'https://open.spotify.com/episode/tn',
@@ -134,6 +194,44 @@ describe('published articles', () => {
       NotFoundException,
     );
     expect(download).not.toHaveBeenCalled();
+  });
+
+  it('signs a cover only for a published article with an image', async () => {
+    const view = vi.fn().mockResolvedValue({
+      url: 'https://files.example/cover.jpg',
+      expiresAt: 'soon',
+    });
+    const findUnique = vi.fn().mockResolvedValue(published);
+    const result = await service(
+      { article: { findUnique } },
+      { view },
+    ).publishedCover('a1');
+
+    expect(view).toHaveBeenCalledWith('uploads/cover.jpg');
+    expect(result).toEqual({
+      url: 'https://files.example/cover.jpg',
+      expiresAt: 'soon',
+    });
+  });
+
+  it('does not sign a cover for an unpublished article or one without an image', async () => {
+    const view = vi.fn();
+    const findUnique = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ...published,
+        articleStatus: 'unpublish',
+      })
+      .mockResolvedValueOnce({ ...published, imageKey: null });
+
+    const articles = service({ article: { findUnique } }, { view });
+    await expect(articles.publishedCover('a1')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    await expect(articles.publishedCover('a1')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(view).not.toHaveBeenCalled();
   });
 
   it('rejects an article whose series does not exist', async () => {

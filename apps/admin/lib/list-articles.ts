@@ -145,6 +145,7 @@ function parseArticle(value: unknown): Article | null {
     type: record.type,
     articleStatus: record.articleStatus,
     uploadedAt: record.uploadedAt,
+    imageKey: typeof record.imageKey === "string" ? record.imageKey : null,
   };
 }
 
