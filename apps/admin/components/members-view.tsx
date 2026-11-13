@@ -3,7 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { SearchIcon } from "lucide-react";
+import { MoreHorizontalIcon, SearchIcon, Trash2Icon } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@repo/ui/components/button";
 import {
   Card,
@@ -12,10 +13,18 @@ import {
   CardTitle,
 } from "@repo/ui/components/card";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@repo/ui/components/dropdown-menu";
+import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
 } from "@repo/ui/components/input-group";
+import { Modal } from "@repo/ui/modal";
 import {
   Table,
   TableBody,
@@ -25,11 +34,7 @@ import {
   TableRow,
 } from "@repo/ui/components/table";
 import { ChoiceGroup } from "@repo/ui/choice-group";
-import {
-  branchLabel,
-  formatMemberDate,
-  memberName,
-} from "../lib/member-display";
+import { branchLabel, memberName } from "../lib/member-display";
 import type { Member } from "../lib/members";
 
 const ALL = "all";
@@ -173,7 +178,7 @@ export function MembersView({ members }: { members: Member[] }) {
                   Branch
                 </TableHead>
                 <TableHead className="font-bold text-muted-foreground">
-                  Registered
+                  Actions
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -196,7 +201,9 @@ export function MembersView({ members }: { members: Member[] }) {
                   <TableCell>{member.mobileNumber}</TableCell>
                   <TableCell>{member.email ?? "—"}</TableCell>
                   <TableCell>{branchLabel(member.branch)}</TableCell>
-                  <TableCell>{formatMemberDate(member.createdAt)}</TableCell>
+                  <TableCell onClick={(event) => event.stopPropagation()}>
+                    <MemberActions member={member} />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -208,6 +215,102 @@ export function MembersView({ members }: { members: Member[] }) {
         Showing {visibleMembers.length} of {members.length} members
       </p>
     </div>
+  );
+}
+
+function MemberActions({ member }: { member: Member }) {
+  const router = useRouter();
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const name = memberName(member);
+
+  function onOpenChange(open: boolean) {
+    if (deleting) {
+      return;
+    }
+    setConfirmOpen(open);
+    if (!open) {
+      setError(null);
+    }
+  }
+
+  async function remove() {
+    setDeleting(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/members/${encodeURIComponent(member.id)}`,
+        { method: "DELETE" },
+      );
+      if (!response.ok) {
+        setError("Could not delete this member. Please try again.");
+        return;
+      }
+      toast.success("Member deleted.");
+      setConfirmOpen(false);
+      router.refresh();
+    } catch {
+      setError("Could not delete this member. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <>
+      <Modal
+        open={confirmOpen}
+        onOpenChange={onOpenChange}
+        icon={<Trash2Icon />}
+        title="Delete member"
+        description="This action cannot be undone."
+        confirmLabel={deleting ? "Deleting..." : "Delete"}
+        pending={deleting}
+        onConfirm={() => void remove()}
+      >
+        <p>
+          You are about to permanently delete{" "}
+          <span className="font-semibold text-foreground">“{name}”</span>. They
+          will no longer be in the members database.
+          {member.isDgroupLeader
+            ? " Meetings they lead will be removed as well."
+            : null}
+        </p>
+        {error ? <p className="text-destructive">{error}</p> : null}
+      </Modal>
+      <DropdownMenu>
+        <DropdownMenuTrigger render={<Button variant="ghost" size="icon" />}>
+          <MoreHorizontalIcon />
+          <span className="sr-only">Open actions for {name}</span>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-40">
+          <DropdownMenuGroup>
+            <DropdownMenuItem
+              onClick={() => router.push(`/members/${member.id}?edit=1`)}
+            >
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => setConfirmOpen(true)}
+            >
+              Delete
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => router.push(`/members/${member.id}?tab=glc`)}
+            >
+              GLC progress
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => router.push(`/members/${member.id}?tab=dgroup`)}
+            >
+              DGroups
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
   );
 }
 

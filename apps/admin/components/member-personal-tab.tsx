@@ -55,13 +55,15 @@ type Draft = {
 export function MemberPersonalTab({
   member: initialMember,
   branches,
+  startEditing = false,
 }: {
   member: Member;
   branches: ChurchBranch[];
+  startEditing?: boolean;
 }) {
   const router = useRouter();
   const [member, setMember] = React.useState(initialMember);
-  const [editing, setEditing] = React.useState(false);
+  const [editing, setEditing] = React.useState(startEditing);
   const [draft, setDraft] = React.useState<Draft>(() =>
     draftFromMember(member),
   );

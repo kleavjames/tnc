@@ -92,7 +92,7 @@ export default function MembersLoading() {
                 Branch
               </TableHead>
               <TableHead className="font-bold text-muted-foreground">
-                Registered
+                Actions
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -115,7 +115,7 @@ export default function MembersLoading() {
                   <Skeleton className="h-4 w-40" />
                 </TableCell>
                 <TableCell>
-                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="size-8" />
                 </TableCell>
               </TableRow>
             ))}
