@@ -1,10 +1,13 @@
 import { BadRequestException } from '@nestjs/common';
 
 const ARTICLE_TYPES = ['glc', 'lnl', 'sermon'] as const;
+const ARTICLE_LANGUAGES = ['english', 'tagalog', 'cebuano'] as const;
 
 type ArticleType = (typeof ARTICLE_TYPES)[number];
+export type ArticleLanguage = (typeof ARTICLE_LANGUAGES)[number];
 
 export type ArticleContent = {
+  language: ArticleLanguage;
   title: string;
   subtitle: string;
   body: string;
@@ -33,6 +36,7 @@ export function parseArticleContent(body: unknown): ArticleContent {
   const type = oneOf(record.type, ARTICLE_TYPES, 'type');
 
   return {
+    language: articleLanguage(record.language),
     title,
     subtitle: text(record.subtitle),
     body: text(record.body),
@@ -46,6 +50,17 @@ export function parseArticleContent(body: unknown): ArticleContent {
     audioLink: optionalUrl(record.audioLink, 'audioLink'),
     seriesId: optionalSeriesId(record.seriesId),
   };
+}
+
+export function parseLanguageQuery(value: unknown): ArticleLanguage {
+  return articleLanguage(value);
+}
+
+function articleLanguage(value: unknown): ArticleLanguage {
+  if (value === undefined || value === null || value === '') {
+    return 'english';
+  }
+  return oneOf(value, ARTICLE_LANGUAGES, 'language');
 }
 
 function text(value: unknown): string {

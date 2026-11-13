@@ -322,7 +322,7 @@ function filterMembers(
     const branch = branchLabel(member.branch).toLowerCase();
     return (
       memberName(member).toLowerCase().includes(normalized) ||
-      member.membershipId.toLowerCase().includes(normalized) ||
+      (member.membershipId ?? "").toLowerCase().includes(normalized) ||
       member.mobileNumber.toLowerCase().includes(normalized) ||
       (member.email ?? "").toLowerCase().includes(normalized) ||
       branch.includes(normalized)

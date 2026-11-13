@@ -6,9 +6,11 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard.js';
+import { parseLanguageQuery } from './article.input.js';
 import { ArticlesService } from './articles.service.js';
 
 @Controller('articles')
@@ -26,8 +28,11 @@ export class ArticlesController {
   }
 
   @Get('published/:id/file')
-  publishedFile(@Param('id') id: string) {
-    return this.articles.publishedFile(id);
+  publishedFile(
+    @Param('id') id: string,
+    @Query('language') language?: string,
+  ) {
+    return this.articles.publishedFile(id, parseLanguageQuery(language));
   }
 
   @Get('published/:id/cover')
@@ -73,8 +78,8 @@ export class ArticlesController {
 
   @Post(':id/unpublish')
   @UseGuards(AuthGuard)
-  unpublish(@Param('id') id: string) {
-    return this.articles.unpublish(id);
+  unpublish(@Param('id') id: string, @Body() body: unknown) {
+    return this.articles.unpublish(id, body);
   }
 
   @Delete(':id')

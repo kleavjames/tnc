@@ -6,7 +6,7 @@ export type MemberStatus = "pending" | "approved" | "reject";
 
 export type Member = {
   id: string;
-  membershipId: string;
+  membershipId: string | null;
   firstName: string;
   lastName: string;
   mobileNumber: string;
@@ -119,7 +119,7 @@ function parseMember(value: unknown): Member | null {
   const record = value as Record<string, unknown>;
   if (
     typeof record.id !== "string" ||
-    typeof record.membershipId !== "string" ||
+    (record.membershipId !== null && typeof record.membershipId !== "string") ||
     typeof record.firstName !== "string" ||
     typeof record.lastName !== "string" ||
     typeof record.mobileNumber !== "string" ||
@@ -144,7 +144,8 @@ function parseMember(value: unknown): Member | null {
 
   return {
     id: record.id,
-    membershipId: record.membershipId,
+    membershipId:
+      typeof record.membershipId === "string" ? record.membershipId : null,
     firstName: record.firstName,
     lastName: record.lastName,
     mobileNumber: record.mobileNumber,

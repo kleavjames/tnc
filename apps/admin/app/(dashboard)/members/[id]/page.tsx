@@ -74,7 +74,9 @@ export default async function MemberPage({
                 {pending ? "Pending" : labelize(member.status)}
               </Badge>
             </div>
-            <p className="text-muted-foreground">{member.membershipId}</p>
+            <p className="text-muted-foreground">
+              {member.membershipId ?? "Pending registration"}
+            </p>
           </div>
         </header>
 
