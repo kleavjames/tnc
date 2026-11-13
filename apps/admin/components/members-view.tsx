@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MoreHorizontalIcon, SearchIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
+import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import {
   Card,
@@ -59,7 +60,13 @@ const CIVIL_STATUSES = [
   { value: "separated", label: "Separated" },
 ] as const;
 
-export function MembersView({ members }: { members: Member[] }) {
+export function MembersView({
+  members,
+  pendingCount,
+}: {
+  members: Member[];
+  pendingCount: number;
+}) {
   const router = useRouter();
   const [query, setQuery] = React.useState("");
   const [branchId, setBranchId] = React.useState(ALL);
@@ -90,6 +97,9 @@ export function MembersView({ members }: { members: Member[] }) {
           render={<Link href="/members/pending" />}
         >
           Pending registrations
+          {pendingCount > 0 ? (
+            <Badge variant="secondary">{pendingCount}</Badge>
+          ) : null}
         </Button>
       </div>
 
