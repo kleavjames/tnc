@@ -54,6 +54,7 @@ import { ToggleGroup, ToggleGroupItem } from "@repo/ui/components/toggle-group";
 import { cn } from "@repo/ui/lib/utils";
 import {
   ARTICLE_TYPE_LABELS,
+  ARTICLE_LANGUAGE_LABELS,
   type Article,
   type ArticleType,
 } from "../lib/articles";
@@ -131,6 +132,14 @@ function formatUploaded(iso: string): string {
 
 function TypeBadge({ type }: { type: ArticleType }) {
   return <Badge variant="secondary">{ARTICLE_TYPE_LABELS[type]}</Badge>;
+}
+
+function LanguageBadges({ article }: { article: Article }) {
+  return article.locales.map((locale) => (
+    <Badge key={locale.language} variant="outline">
+      {ARTICLE_LANGUAGE_LABELS[locale.language]}
+    </Badge>
+  ));
 }
 
 const STATUS_LABELS: Record<Article["articleStatus"], string> = {
@@ -443,6 +452,9 @@ function ResourcesTable({ articles }: { articles: Article[] }) {
               Type
             </TableHead>
             <TableHead className="text-muted-foreground font-bold">
+              Language
+            </TableHead>
+            <TableHead className="text-muted-foreground font-bold">
               Status
             </TableHead>
             <TableHead className="text-muted-foreground font-bold">
@@ -475,6 +487,11 @@ function ResourcesTable({ articles }: { articles: Article[] }) {
               <TableCell>{article.series ?? "No series"}</TableCell>
               <TableCell>
                 <TypeBadge type={article.type} />
+              </TableCell>
+              <TableCell>
+                <div className="flex flex-wrap gap-1">
+                  <LanguageBadges article={article} />
+                </div>
               </TableCell>
               <TableCell>{STATUS_LABELS[article.articleStatus]}</TableCell>
               <TableCell>{formatUploaded(article.uploadedAt)}</TableCell>
@@ -511,7 +528,10 @@ function ResourcesCoverGrid({ articles }: { articles: Article[] }) {
             {article.subtitle ? (
               <CardDescription>{article.subtitle}</CardDescription>
             ) : null}
-            <TypeBadge type={article.type} />
+            <div className="flex flex-wrap items-center gap-1">
+              <TypeBadge type={article.type} />
+              <LanguageBadges article={article} />
+            </div>
           </CardHeader>
         </Card>
       ))}

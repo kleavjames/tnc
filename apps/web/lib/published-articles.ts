@@ -46,8 +46,17 @@ export const getPublishedArticle = cache(
   },
 );
 
-export function publishedFileUrl(id: string): Promise<string | null> {
-  return signedUrl(`/articles/published/${encodeURIComponent(id)}/file`);
+export function publishedFileUrl(
+  id: string,
+  language?: string | null,
+): Promise<string | null> {
+  const query =
+    language && language.length > 0
+      ? `?language=${encodeURIComponent(language)}`
+      : "";
+  return signedUrl(
+    `/articles/published/${encodeURIComponent(id)}/file${query}`,
+  );
 }
 
 export function publishedCoverUrl(id: string): Promise<string | null> {

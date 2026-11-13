@@ -36,11 +36,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/ui/components/select";
+import { ToggleGroup, ToggleGroupItem } from "@repo/ui/components/toggle-group";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { toast } from "sonner";
 import { cn } from "@repo/ui/lib/utils";
 import { ChipInput } from "./chip-input";
+import {
+  ARTICLE_LANGUAGE_LABELS,
+  ARTICLE_LANGUAGES,
+  type ArticleLanguage,
+} from "../lib/articles";
 import type { SeriesItem } from "../lib/series";
 import {
   createDraft,
@@ -105,7 +111,22 @@ type ArticleDraft = {
   fileSize: number;
   fileContentType: string | null;
   seriesId: string | null;
+  localeSaved: boolean;
   savedAt: string;
+};
+
+type LocaleDraft = {
+  title: string;
+  subtitle: string;
+  bodyHtml: string;
+  verse: string;
+  articleStatus: ArticleStatus | null;
+  fileKey: string | null;
+  fileName: string | null;
+  fileSize: number;
+  fileContentType: string | null;
+  file: ArticleFile | null;
+  saved: boolean;
 };
 
 const fieldClass =
@@ -129,6 +150,7 @@ const initialDraft: ArticleDraft = {
   fileSize: 0,
   fileContentType: null,
   seriesId: null,
+  localeSaved: false,
   savedAt: new Date().toISOString(),
 };
 
@@ -147,25 +169,41 @@ export type EditorArticle = {
   videoLink: string | null;
   audioLink: string | null;
   seriesId: string | null;
+  locales?: {
+    language: ArticleLanguage;
+    title: string;
+    subtitle: string;
+    body: string;
+    verse: string;
+    articleStatus: ArticleStatus | null;
+    fileKey: string | null;
+  }[];
 };
 
-function draftFromArticle(article: EditorArticle): ArticleDraft {
+function draftFromArticle(
+  article: EditorArticle,
+  english: LocaleDraft,
+): ArticleDraft {
   return {
     ...initialDraft,
     id: article.id,
-    title: article.title,
-    subtitle: article.subtitle,
-    bodyHtml: article.body,
-    verse: article.verse,
+    title: english.title,
+    subtitle: english.subtitle,
+    bodyHtml: english.bodyHtml,
+    verse: english.verse,
     tags: article.tags,
     type: article.type,
-    articleStatus: article.articleStatus,
+    articleStatus: english.articleStatus,
     sermonDate: article.sermonDate,
     imageKey: article.imageKey,
-    fileKey: article.fileKey,
+    fileKey: english.fileKey,
     videoLink: article.videoLink ?? "",
     audioLink: article.audioLink ?? "",
+    fileName: english.fileName,
+    fileSize: english.fileSize,
+    fileContentType: english.fileContentType,
     seriesId: article.seriesId,
+    localeSaved: english.saved,
   };
 }
 
@@ -193,6 +231,94 @@ function contentTypeFromName(name: string): string {
   return "application/octet-stream";
 }
 
+function emptyLocale(): LocaleDraft {
+  return {
+    title: "",
+    subtitle: "",
+    bodyHtml: "",
+    verse: "",
+    articleStatus: null,
+    fileKey: null,
+    fileName: null,
+    fileSize: 0,
+    fileContentType: null,
+    file: null,
+    saved: false,
+  };
+}
+
+function localeDraft(locale: {
+  title: string;
+  subtitle: string;
+  body: string;
+  verse: string;
+  articleStatus: ArticleStatus | null;
+  fileKey: string | null;
+}): LocaleDraft {
+  const file = locale.fileKey ? fileFromKey(locale.fileKey) : null;
+  return {
+    title: locale.title,
+    subtitle: locale.subtitle,
+    bodyHtml: locale.body,
+    verse: locale.verse,
+    articleStatus: locale.articleStatus,
+    fileKey: locale.fileKey,
+    fileName: file?.name ?? null,
+    fileSize: 0,
+    fileContentType: file?.contentType ?? null,
+    file,
+    saved: true,
+  };
+}
+
+function blankLocales(): Record<ArticleLanguage, LocaleDraft> {
+  return {
+    english: emptyLocale(),
+    tagalog: emptyLocale(),
+    cebuano: emptyLocale(),
+  };
+}
+
+function localesFromArticle(
+  article: EditorArticle,
+): Record<ArticleLanguage, LocaleDraft> {
+  const locales = blankLocales();
+  const source = article.locales?.length
+    ? article.locales
+    : [
+        {
+          language: "english" as const,
+          title: article.title,
+          subtitle: article.subtitle,
+          body: article.body,
+          verse: article.verse,
+          articleStatus: article.articleStatus,
+          fileKey: article.fileKey,
+        },
+      ];
+  for (const locale of source) {
+    if (!isArticleLanguage(locale.language)) {
+      continue;
+    }
+    locales[locale.language] = localeDraft(locale);
+  }
+  if (!locales.english.saved) {
+    locales.english = localeDraft({
+      title: article.title,
+      subtitle: article.subtitle,
+      body: article.body,
+      verse: article.verse,
+      articleStatus: article.articleStatus,
+      fileKey: article.fileKey,
+    });
+  }
+  return locales;
+}
+
+function isArticleLanguage(value: string): value is ArticleLanguage {
+  return ARTICLE_LANGUAGES.includes(value as ArticleLanguage);
+}
+
 export function ArticleEditor({
   article,
   series = [],
@@ -200,11 +326,18 @@ export function ArticleEditor({
   article?: EditorArticle;
   series?: SeriesItem[];
 }) {
-  const [draft, setDraft] = useState<ArticleDraft>(() =>
-    article ? draftFromArticle(article) : initialDraft,
+  const localesRef = useRef<Record<ArticleLanguage, LocaleDraft>>(
+    article ? localesFromArticle(article) : blankLocales(),
   );
-  const [articleFile, setArticleFile] = useState<ArticleFile | null>(() =>
-    article?.fileKey ? fileFromKey(article.fileKey) : null,
+  const [language, setLanguage] = useState<ArticleLanguage>("english");
+  const languageRef = useRef<ArticleLanguage>("english");
+  const [draft, setDraft] = useState<ArticleDraft>(() =>
+    article
+      ? draftFromArticle(article, localesRef.current.english)
+      : initialDraft,
+  );
+  const [articleFile, setArticleFile] = useState<ArticleFile | null>(
+    () => localesRef.current.english.file,
   );
   const [showSavedTime, setShowSavedTime] = useState(false);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
@@ -215,13 +348,14 @@ export function ArticleEditor({
   const [saving, setSaving] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [, setTick] = useState(0);
-  const bodyHtmlRef = useRef(article?.body ?? "");
+  const bodyHtmlRef = useRef(localesRef.current.english.bodyHtml);
   const draftRef = useRef(draft);
   const fileRef = useRef<ArticleFile | null>(null);
   const uploads = useRef(new Map<string, AbortController>());
   const coverInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const savingRef = useRef(false);
+  const bodyTimer = useRef<number | null>(null);
 
   draftRef.current = draft;
   fileRef.current = articleFile;
@@ -233,8 +367,8 @@ export function ArticleEditor({
   }, [article]);
 
   useEffect(() => {
-    const key = article?.fileKey;
-    if (!key) {
+    const key = articleFile?.key;
+    if (!key || (articleFile?.size ?? 0) > 0) {
       return;
     }
     let cancel = false;
@@ -264,7 +398,7 @@ export function ArticleEditor({
     return () => {
       cancel = true;
     };
-  }, [article?.fileKey]);
+  }, [articleFile?.key, articleFile?.size]);
 
   useEffect(() => {
     if (!draft.imageKey || coverPreview) {
@@ -309,6 +443,7 @@ export function ArticleEditor({
       savedAt: new Date().toISOString(),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    draftRef.current = next;
     setDraft(next);
   }, []);
 
@@ -322,6 +457,7 @@ export function ArticleEditor({
       return null;
     }
     return {
+      language: languageRef.current,
       title: current.title,
       subtitle: current.subtitle,
       body: bodyHtmlRef.current,
@@ -356,7 +492,12 @@ export function ArticleEditor({
     setSaveError(null);
     try {
       const saved = await action();
-      persist({ id: saved.id, articleStatus: saved.articleStatus });
+      persist({
+        id: saved.id,
+        articleStatus: saved.articleStatus,
+        localeSaved: true,
+      });
+      localesRef.current[languageRef.current] = snapshotActive();
       if (successMessage) {
         toast.success(successMessage);
       }
@@ -371,6 +512,9 @@ export function ArticleEditor({
   }
 
   function saveDraft() {
+    if (!canSaveLanguage()) {
+      return;
+    }
     const current = draftRef.current;
     const content = articleContent(current);
     if (!content) {
@@ -384,6 +528,9 @@ export function ArticleEditor({
   }
 
   function publish() {
+    if (!canSaveLanguage()) {
+      return;
+    }
     const current = draftRef.current;
     const content = articleContent(current);
     if (!content) {
@@ -399,11 +546,80 @@ export function ArticleEditor({
   }
 
   function unpublish() {
-    const id = draftRef.current.id;
-    if (!id) {
+    const current = draftRef.current;
+    if (!current.id || !current.localeSaved) {
       return;
     }
-    return runSave(() => unpublishArticle(id));
+    const content = articleContent(current);
+    if (!content) {
+      return;
+    }
+    return runSave(() => unpublishArticle(current.id as string, content));
+  }
+
+  function canSaveLanguage(): boolean {
+    if (languageRef.current !== "english" && !draftRef.current.id) {
+      setSaveError("Save the English article before adding another language.");
+      return false;
+    }
+    return true;
+  }
+
+  function snapshotActive(): LocaleDraft {
+    const current = draftRef.current;
+    const file = fileRef.current;
+    return {
+      title: current.title,
+      subtitle: current.subtitle,
+      bodyHtml: bodyHtmlRef.current,
+      verse: current.verse,
+      articleStatus: current.articleStatus,
+      fileKey: file?.key ?? current.fileKey,
+      fileName: file?.name ?? current.fileName,
+      fileSize: file?.size ?? current.fileSize,
+      fileContentType: file?.contentType ?? current.fileContentType,
+      file,
+      saved: current.localeSaved,
+    };
+  }
+
+  function applyLocale(locale: LocaleDraft) {
+    bodyHtmlRef.current = locale.bodyHtml;
+    fileRef.current = locale.file;
+    setArticleFile(locale.file);
+    setDraft((current) => {
+      const next: ArticleDraft = {
+        ...current,
+        title: locale.title,
+        subtitle: locale.subtitle,
+        bodyHtml: locale.bodyHtml,
+        verse: locale.verse,
+        articleStatus: locale.articleStatus,
+        fileKey: locale.fileKey,
+        fileName: locale.fileName,
+        fileSize: locale.fileSize,
+        fileContentType: locale.fileContentType,
+        localeSaved: locale.saved,
+      };
+      draftRef.current = next;
+      return next;
+    });
+  }
+
+  function switchLanguage(next: ArticleLanguage) {
+    if (next === languageRef.current) {
+      return;
+    }
+    localesRef.current[languageRef.current] = snapshotActive();
+    if (bodyTimer.current) {
+      window.clearTimeout(bodyTimer.current);
+      bodyTimer.current = null;
+    }
+    languageRef.current = next;
+    setLanguage(next);
+    applyLocale(localesRef.current[next]);
+    setFileError(null);
+    setSaveError(null);
   }
 
   useEffect(() => {
@@ -432,7 +648,6 @@ export function ArticleEditor({
     setDraft((current) => ({ ...current, [key]: value }));
   }
 
-  const bodyTimer = useRef<number | null>(null);
   const onBodyChange = useCallback(
     (html: string) => {
       bodyHtmlRef.current = html;
@@ -511,6 +726,7 @@ export function ArticleEditor({
       return;
     }
     const previous = fileRef.current?.key ?? null;
+    const uploadLanguage = languageRef.current;
     const id = crypto.randomUUID();
     const controller = new AbortController();
     uploads.current.set(id, controller);
@@ -534,15 +750,30 @@ export function ArticleEditor({
           );
         },
       });
-      if (previous && previous !== uploaded.key) {
-        await deleteObject(previous).catch(() => undefined);
-      }
       const saved: ArticleFile = {
         ...nextFile,
         key: uploaded.key,
         loaded: file.size,
         error: null,
       };
+      if (languageRef.current !== uploadLanguage) {
+        const locale = localesRef.current[uploadLanguage];
+        localesRef.current[uploadLanguage] = {
+          ...locale,
+          file: saved,
+          fileKey: uploaded.key,
+          fileName: file.name,
+          fileSize: file.size,
+          fileContentType: saved.contentType,
+        };
+        if (previous && previous !== uploaded.key) {
+          await deleteObject(previous).catch(() => undefined);
+        }
+        return;
+      }
+      if (previous && previous !== uploaded.key) {
+        await deleteObject(previous).catch(() => undefined);
+      }
       fileRef.current = saved;
       setArticleFile(saved);
       setDraft((current) => ({
@@ -559,10 +790,15 @@ export function ArticleEditor({
       const failed: ArticleFile = {
         ...nextFile,
         error:
-          error instanceof Error
-            ? error.message
-            : "Could not upload that file.",
+          error instanceof Error ? error.message : "Could not upload that file.",
       };
+      if (languageRef.current !== uploadLanguage) {
+        localesRef.current[uploadLanguage] = {
+          ...localesRef.current[uploadLanguage],
+          file: failed,
+        };
+        return;
+      }
       fileRef.current = failed;
       setArticleFile(failed);
     } finally {
@@ -621,6 +857,7 @@ export function ArticleEditor({
     { label: "No series", value: "none" },
     ...series.map((item) => ({ label: item.title, value: item.id })),
   ];
+  const languageLabel = ARTICLE_LANGUAGE_LABELS[language];
   const statusLabel = ARTICLE_STATUSES.find(
     (item) => item.value === draft.articleStatus,
   )?.label;
@@ -641,7 +878,9 @@ export function ArticleEditor({
             {article ? "Edit article" : "New article"}
           </span>
           <span className="text-muted-foreground">
-            {statusLabel ? `${statusLabel} · ` : null}
+            {languageLabel}
+            {statusLabel ? ` · ${statusLabel}` : ""}
+            {" · "}
             saved {showSavedTime ? relativeTime(draft.savedAt) : "just now"}
           </span>
           {saveError ? (
@@ -668,7 +907,7 @@ export function ArticleEditor({
           >
             Publish
           </Button>
-          {draft.articleStatus === "published" ? (
+          {draft.articleStatus === "published" && draft.localeSaved ? (
             <Button
               type="button"
               variant="outline"
@@ -686,6 +925,26 @@ export function ArticleEditor({
         <div className="flex min-w-0 flex-col gap-5">
           <Card className="rounded-md bg-(--editor-bg)">
             <CardContent className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <Label>Language</Label>
+                <ToggleGroup
+                  variant="outline"
+                  spacing={0}
+                  value={[language]}
+                  onValueChange={(value) => {
+                    const next = value[0];
+                    if (next && isArticleLanguage(next)) {
+                      switchLanguage(next);
+                    }
+                  }}
+                >
+                  {ARTICLE_LANGUAGES.map((item) => (
+                    <ToggleGroupItem key={item} value={item}>
+                      {ARTICLE_LANGUAGE_LABELS[item]}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+              </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="article-title">Title</Label>
                 <input
@@ -709,9 +968,15 @@ export function ArticleEditor({
               <div className="flex flex-col gap-2">
                 <Label>Body</Label>
                 <ArticleBody
-                  initialHtml={article?.body || EMPTY_BODY}
+                  key={language}
+                  initialHtml={draft.bodyHtml || EMPTY_BODY}
                   editable
-                  onChange={onBodyChange}
+                  onChange={(html) => {
+                    if (languageRef.current !== language) {
+                      return;
+                    }
+                    onBodyChange(html);
+                  }}
                 />
               </div>
             </CardContent>
@@ -852,7 +1117,7 @@ export function ArticleEditor({
                 </Select>
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="article-verse">Verse</Label>
+                <Label htmlFor="article-verse">Verse ({languageLabel})</Label>
                 <Input
                   id="article-verse"
                   value={draft.verse}
@@ -917,7 +1182,7 @@ export function ArticleEditor({
                 </Select>
               </div>
               <div className="flex flex-col gap-2">
-                <Label>Status</Label>
+                <Label>Status ({languageLabel})</Label>
                 <Select
                   items={ARTICLE_STATUSES.map((item) => ({ ...item }))}
                   value={draft.articleStatus}
@@ -946,7 +1211,12 @@ export function ArticleEditor({
 
           <Card className="rounded-md bg-(--editor-bg)">
             <CardHeader>
-              <CardTitle className="text-base font-semibold">File</CardTitle>
+              <CardTitle className="text-base font-semibold">
+                File · {languageLabel}
+              </CardTitle>
+              <CardDescription>
+                Saved with this language. Other languages keep their own file.
+              </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
               {articleFile ? (

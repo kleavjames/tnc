@@ -15,6 +15,7 @@ import {
 import { Input } from "@repo/ui/components/input";
 import { Textarea } from "@repo/ui/components/textarea";
 import { cn } from "@repo/ui/lib/utils";
+import { ChoiceGroup } from "@repo/ui/choice-group";
 import type { ChurchBranch } from "@/lib/church-branches";
 import { registerMember } from "@/lib/register-member";
 
@@ -175,50 +176,6 @@ function firstErrorId(errors: Errors, meetings: Meeting[]): string | null {
     }
   }
   return null;
-}
-
-function ChoiceGroup<T extends string>({
-  id,
-  label,
-  value,
-  options,
-  invalid,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  value: T | null;
-  options: readonly { value: T; label: string }[];
-  invalid?: boolean;
-  onChange: (value: T) => void;
-}) {
-  return (
-    <div
-      id={id}
-      role="group"
-      aria-label={label}
-      aria-invalid={invalid || undefined}
-      tabIndex={-1}
-      className="flex flex-wrap gap-2 outline-none"
-    >
-      {options.map((option) => {
-        const selected = option.value === value;
-        return (
-          <Button
-            key={option.value}
-            type="button"
-            size="sm"
-            variant={selected ? "default" : "outline"}
-            aria-pressed={selected}
-            className="rounded-full px-4"
-            onClick={() => onChange(option.value)}
-          >
-            {option.label}
-          </Button>
-        );
-      })}
-    </div>
-  );
 }
 
 export function MembershipForm({
