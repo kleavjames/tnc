@@ -10,6 +10,8 @@ import {
   LogOutIcon,
   SparklesIcon,
   UserIcon,
+  LibraryBigIcon,
+  UserGroupIcon,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@repo/ui/components/avatar";
 import {
@@ -49,7 +51,9 @@ const contentItems = [
   { title: "Resources", href: "/resources", icon: FileTextIcon },
   { title: "Contents", href: "/contents", icon: LayersIcon },
   { title: "Members", href: "/members", icon: UserIcon },
-  { title: "Media library", href: "/media", icon: FolderIcon },
+  { title: "GLC", href: "/glc", icon: LibraryBigIcon },
+  { title: "DGroups", href: "/dgroups", icon: UserGroupIcon },
+  // { title: "Media library", href: "/media", icon: FolderIcon },
 ] as const;
 
 const churchItems = [

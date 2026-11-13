@@ -28,7 +28,7 @@ export default async function DashboardLayout({
     <SidebarProvider>
       <SessionWatcher expiresAt={result.session.expiresAt} />
       <AppSidebar />
-      <SidebarInset className="bg-card">
+      <SidebarInset className="min-w-0 bg-card">
         <header className="flex h-12 items-center gap-2 px-4 md:hidden">
           <SidebarTrigger />
         </header>
