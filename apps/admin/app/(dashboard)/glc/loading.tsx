@@ -81,10 +81,10 @@ export default function GLCLoading() {
               </TableHead>
             </TableRow>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="sticky left-0 z-20 w-56 min-w-56 border-b bg-card text-xs font-bold tracking-wide text-muted-foreground uppercase">
+              <TableHead className="sticky left-0 z-20 w-56 max-w-56 min-w-56 border-b bg-card text-xs font-bold tracking-wide text-muted-foreground uppercase">
                 Member
               </TableHead>
-              <TableHead className="sticky left-56 z-20 w-32 min-w-32 border-r border-b bg-card text-xs font-bold tracking-wide text-muted-foreground uppercase shadow-[4px_0_8px_-6px_rgba(0,0,0,0.28)]">
+              <TableHead className="sticky left-56 z-20 w-32 max-w-32 min-w-32 border-r border-b bg-card text-xs font-bold tracking-wide text-muted-foreground uppercase shadow-[4px_0_8px_-6px_rgba(0,0,0,0.28)]">
                 Progress
               </TableHead>
               {Array.from({ length: SESSION_COUNT }, (_, index) => (
@@ -104,7 +104,7 @@ export default function GLCLoading() {
           <TableBody>
             {Array.from({ length: ROW_COUNT }, (_, index) => (
               <TableRow key={index} className="hover:bg-transparent">
-                <TableCell className="sticky left-0 z-10 w-56 min-w-56 bg-card">
+                <TableCell className="sticky left-0 z-10 w-56 max-w-56 min-w-56 bg-card">
                   <div className="flex items-center gap-3">
                     <Skeleton className="size-8 shrink-0 rounded-full" />
                     <div className="flex min-w-0 flex-col gap-1.5">
@@ -113,7 +113,7 @@ export default function GLCLoading() {
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="sticky left-56 z-10 w-32 min-w-32 border-r bg-card shadow-[4px_0_8px_-6px_rgba(0,0,0,0.28)]">
+                <TableCell className="sticky left-56 z-10 w-32 max-w-32 min-w-32 border-r bg-card shadow-[4px_0_8px_-6px_rgba(0,0,0,0.28)]">
                   <div className="flex min-w-24 flex-col gap-1">
                     <Skeleton className="h-4 w-10" />
                     <Skeleton className="h-1.5 w-full rounded-full" />

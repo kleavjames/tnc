@@ -38,6 +38,8 @@ import type {
 import { toast } from "sonner";
 
 const ALL = "all";
+const MEMBER_COLUMN = "14rem";
+const PROGRESS_COLUMN = "8rem";
 
 const PAGE_SIZES = [25, 50, 75, 100] as const;
 
@@ -205,7 +207,8 @@ export function GlcAttendanceView({
               <TableRow className="hover:bg-transparent">
                 <TableHead
                   colSpan={2}
-                  className="sticky left-0 z-30 w-88 min-w-88 border-r border-b border-foreground bg-foreground text-background"
+                  style={lockedColumn(`calc(${MEMBER_COLUMN} + ${PROGRESS_COLUMN})`)}
+                  className="sticky left-0 z-30 border-r border-b border-foreground bg-foreground text-background"
                 >
                   <span className="text-xs font-bold tracking-[0.16em] uppercase">
                     Curriculum
@@ -233,7 +236,8 @@ export function GlcAttendanceView({
               <TableRow className="hover:bg-transparent">
                 <TableHead
                   colSpan={2}
-                  className="sticky left-0 z-30 h-auto w-88 min-w-88 border-r border-b bg-primary/15 py-2"
+                  style={lockedColumn(`calc(${MEMBER_COLUMN} + ${PROGRESS_COLUMN})`)}
+                  className="sticky left-0 z-30 h-auto border-r border-b bg-primary/15 py-2"
                 >
                   <div className="relative">
                     <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -264,10 +268,19 @@ export function GlcAttendanceView({
                 ))}
               </TableRow>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="sticky left-0 z-20 w-56 min-w-56 border-b bg-card text-xs font-bold tracking-wide text-muted-foreground uppercase">
+                <TableHead
+                  style={lockedColumn(MEMBER_COLUMN)}
+                  className="sticky left-0 z-20 border-b bg-card text-xs font-bold tracking-wide text-muted-foreground uppercase"
+                >
                   Member
                 </TableHead>
-                <TableHead className="sticky left-56 z-20 w-32 min-w-32 border-r border-b bg-card text-xs font-bold tracking-wide text-muted-foreground uppercase shadow-[4px_0_8px_-6px_rgba(0,0,0,0.28)]">
+                <TableHead
+                  style={{
+                    ...lockedColumn(PROGRESS_COLUMN),
+                    left: MEMBER_COLUMN,
+                  }}
+                  className="sticky z-20 border-r border-b bg-card text-xs font-bold tracking-wide text-muted-foreground uppercase shadow-[4px_0_8px_-6px_rgba(0,0,0,0.28)]"
+                >
                   Progress
                 </TableHead>
                 {books.flatMap((column) =>
@@ -294,7 +307,10 @@ export function GlcAttendanceView({
                 <TableRow className="hover:bg-transparent">
                   <TableCell
                     colSpan={2}
-                    className="sticky left-0 z-10 w-88 min-w-88 border-r bg-card text-sm text-muted-foreground"
+                    style={lockedColumn(
+                      `calc(${MEMBER_COLUMN} + ${PROGRESS_COLUMN})`,
+                    )}
+                    className="sticky left-0 z-10 border-r bg-card text-sm whitespace-normal text-muted-foreground"
                   >
                     {emptyMembersMessage(query, branchId !== ALL)}
                   </TableCell>
@@ -310,8 +326,11 @@ export function GlcAttendanceView({
                     key={member.id}
                     className="group hover:bg-transparent"
                   >
-                    <TableCell className="sticky left-0 z-10 w-56 min-w-56 bg-card group-hover:bg-muted/50">
-                      <div className="flex items-center gap-3">
+                    <TableCell
+                      style={lockedColumn(MEMBER_COLUMN)}
+                      className="sticky left-0 z-10 bg-card whitespace-normal group-hover:bg-muted/50"
+                    >
+                      <div className="grid w-full grid-cols-[auto_minmax(0,1fr)] items-center gap-3">
                         <Avatar>
                           <AvatarFallback className={avatarTone(member.id)}>
                             {initials(member)}
@@ -320,9 +339,10 @@ export function GlcAttendanceView({
                         <div className="min-w-0">
                           <Link
                             href={`/members/${member.id}`}
-                            className="block truncate font-semibold hover:underline"
+                            title={memberName(member)}
+                            className="block font-semibold hover:underline"
                           >
-                            {memberName(member)}
+                            <MarqueeName name={memberName(member)} />
                           </Link>
                           <p className="truncate text-xs text-muted-foreground">
                             {member.branch.branch}
@@ -330,8 +350,14 @@ export function GlcAttendanceView({
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="sticky left-56 z-10 w-32 min-w-32 border-r bg-card shadow-[4px_0_8px_-6px_rgba(0,0,0,0.28)] group-hover:bg-muted/50">
-                      <div className="flex min-w-24 flex-col gap-1">
+                    <TableCell
+                      style={{
+                        ...lockedColumn(PROGRESS_COLUMN),
+                        left: MEMBER_COLUMN,
+                      }}
+                      className="sticky z-10 border-r bg-card shadow-[4px_0_8px_-6px_rgba(0,0,0,0.28)] group-hover:bg-muted/50"
+                    >
+                      <div className="flex w-full flex-col gap-1">
                         <span className="text-sm font-medium">
                           {attended}/{total}
                         </span>
@@ -507,6 +533,62 @@ function pageList(page: number, pageCount: number): Array<number | "ellipsis"> {
   }
   items.push(pageCount);
   return items;
+}
+
+function lockedColumn(width: string): React.CSSProperties {
+  return { width, minWidth: width, maxWidth: width };
+}
+
+function MarqueeName({ name }: { name: string }) {
+  const frameRef = React.useRef<HTMLSpanElement>(null);
+  const labelRef = React.useRef<HTMLSpanElement>(null);
+  const [duration, setDuration] = React.useState(0);
+
+  React.useEffect(() => {
+    const frame = frameRef.current;
+    const label = labelRef.current;
+    if (!frame || !label) {
+      return;
+    }
+
+    const measure = () => {
+      if (frame.clientWidth === 0) {
+        return;
+      }
+      const overflow = label.scrollWidth - frame.clientWidth;
+      const seconds = (label.scrollWidth + 32) / 36;
+      setDuration(overflow > 1 ? Math.min(20, Math.max(8, seconds)) : 0);
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(frame);
+    return () => observer.disconnect();
+  }, [name]);
+
+  const scrolling = duration > 0;
+
+  return (
+    <span ref={frameRef} className="block overflow-hidden">
+      <span
+        className={cn(
+          "inline-flex w-max whitespace-nowrap",
+          scrolling &&
+            "hover:[animation-play-state:paused] motion-safe:[animation:member-marquee_linear_infinite]",
+        )}
+        style={scrolling ? { animationDuration: `${duration}s` } : undefined}
+      >
+        <span ref={labelRef} className={cn(scrolling && "pr-8")}>
+          {name}
+        </span>
+        {scrolling ? (
+          <span aria-hidden className="pr-8">
+            {name}
+          </span>
+        ) : null}
+      </span>
+    </span>
+  );
 }
 
 function StatCard({ label, value }: { label: string; value: string }) {
