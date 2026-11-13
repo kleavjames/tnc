@@ -3,9 +3,11 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { SearchIcon } from "lucide-react";
 import { Avatar, AvatarFallback } from "@repo/ui/components/avatar";
 import { Card, CardContent } from "@repo/ui/components/card";
 import { Checkbox } from "@repo/ui/components/checkbox";
+import { Input } from "@repo/ui/components/input";
 import {
   Table,
   TableBody,
@@ -42,6 +44,7 @@ export function GlcAttendanceView({
   const router = useRouter();
   const [levelId, setLevelId] = React.useState(ALL);
   const [branchId, setBranchId] = React.useState(ALL);
+  const [query, setQuery] = React.useState("");
   const [overrides, setOverrides] = React.useState<
     Record<string, Record<string, boolean>>
   >({});
@@ -60,6 +63,7 @@ export function GlcAttendanceView({
   const branches = branchOptions(attendance.members);
   const visibleMembers = attendance.members
     .filter((member) => branchId === ALL || member.branch.id === branchId)
+    .filter((member) => matchesName(member, query))
     .slice()
     .sort(byName);
   const stats = summarize(visibleMembers, sessions, overrides);
@@ -152,11 +156,9 @@ export function GlcAttendanceView({
         </p>
       ) : null}
 
-      {visibleMembers.length === 0 ? (
+      {attendance.members.length === 0 ? (
         <p className="rounded-md border border-dashed bg-card px-4 py-10 text-center text-sm text-muted-foreground">
-          {attendance.members.length === 0
-            ? "No members have started GLC."
-            : "No members match these filters."}
+          No members have started GLC.
         </p>
       ) : (
         <div className="overflow-hidden rounded-md border bg-card">
@@ -165,7 +167,6 @@ export function GlcAttendanceView({
               <TableRow className="hover:bg-transparent">
                 <TableHead
                   colSpan={2}
-                  rowSpan={2}
                   className="sticky left-0 z-30 w-88 min-w-88 border-r border-b border-foreground bg-foreground text-background"
                 >
                   <span className="text-xs font-bold tracking-[0.16em] uppercase">
@@ -192,6 +193,21 @@ export function GlcAttendanceView({
                 })}
               </TableRow>
               <TableRow className="hover:bg-transparent">
+                <TableHead
+                  colSpan={2}
+                  className="sticky left-0 z-30 h-auto w-88 min-w-88 border-r border-b bg-primary/15 py-2"
+                >
+                  <div className="relative">
+                    <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder="Search names..."
+                      aria-label="Search names"
+                      className="bg-card pl-8"
+                    />
+                  </div>
+                </TableHead>
                 {levels.flatMap((level) =>
                   level.books.map((book) =>
                     book.sessions.length === 0 ? null : (
@@ -227,6 +243,16 @@ export function GlcAttendanceView({
               </TableRow>
             </TableHeader>
             <TableBody>
+              {visibleMembers.length === 0 ? (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell
+                    colSpan={2}
+                    className="sticky left-0 z-10 w-88 min-w-88 border-r bg-card text-sm text-muted-foreground"
+                  >
+                    {emptyMembersMessage(query, branchId !== ALL)}
+                  </TableCell>
+                </TableRow>
+              ) : null}
               {visibleMembers.map((member) => {
                 const attended = countAttended(member, sessions, overrides);
                 const total = sessions.length;
@@ -300,7 +326,7 @@ export function GlcAttendanceView({
         </div>
       )}
 
-      {visibleMembers.length > 0 ? (
+      {attendance.members.length > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
           <p>
             Showing {visibleMembers.length} members · {sessions.length} sessions
@@ -381,6 +407,21 @@ function branchOptions(
   return [...byId.entries()]
     .map(([value, label]) => ({ value, label }))
     .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+function matchesName(member: GlcAttendanceMember, query: string): boolean {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) {
+    return true;
+  }
+  return memberName(member).toLowerCase().includes(normalized);
+}
+
+function emptyMembersMessage(query: string, branchFiltered: boolean): string {
+  if (query.trim() && !branchFiltered) {
+    return "No members match this search.";
+  }
+  return "No members match these filters.";
 }
 
 function byName(a: GlcAttendanceMember, b: GlcAttendanceMember): number {
