@@ -24,6 +24,12 @@ enum ArticleStatus {
   published
 }
 
+enum ArticleLanguage {
+  english
+  tagalog
+  cebuano
+}
+
 model User {
   id           String    @id @default(cuid())
   username     String    @unique
@@ -60,30 +66,45 @@ model Series {
   @@map("series")
 }
 
-/// Teaching content. `imageKey` and `fileKey` are Cloudflare R2 object keys, not public URLs.
+/// Teaching content shared across languages. `imageKey` is a Cloudflare R2 object key, not a public URL.
 model Article {
-  id            String        @id @default(cuid())
-  title         String
-  subtitle      String        @default("")
-  body          String        @default("")
-  verse         String
-  uploadedAt    DateTime      @default(now())
-  sermonDate    DateTime?
-  tags          String[]      @default([])
-  type          ArticleType
-  articleStatus ArticleStatus @default(draft)
-  imageKey      String?
-  fileKey       String?
-  videoLink     String?
-  audioLink     String?
-  seriesId      String?
-  series        Series?       @relation(fields: [seriesId], references: [id], onDelete: SetNull)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id         String          @id @default(cuid())
+  uploadedAt DateTime        @default(now())
+  sermonDate DateTime?
+  tags       String[]        @default([])
+  type       ArticleType
+  imageKey   String?
+  videoLink  String?
+  audioLink  String?
+  seriesId   String?
+  series     Series?         @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  locales    ArticleLocale[]
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
 
   @@index([type])
   @@index([uploadedAt])
   @@map("articles")
+}
+
+/// One language of an article. English is required. `fileKey` is a Cloudflare R2 object key.
+model ArticleLocale {
+  id            String          @id @default(cuid())
+  articleId     String
+  article       Article         @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  language      ArticleLanguage
+  title         String
+  subtitle      String          @default("")
+  body          String          @default("")
+  verse         String
+  articleStatus ArticleStatus   @default(draft)
+  fileKey       String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@unique([articleId, language])
+  @@index([language, articleStatus])
+  @@map("article_locales")
 }
 
 /// Site-wide editable copy shown on the public website.
@@ -241,8 +262,8 @@ model GlcProgressSession {
 /// Directory person. Roles are optional; an empty list means no role is connected yet.
 model Member {
   id             String          @id @default(cuid())
-  /// Formal ID assigned at registration: TNC-00001-26. The number increments for each member; the year is the registration year.
-  membershipId   String          @unique @default(dbgenerated("tnc_membership_id()"))
+  /// Formal ID assigned on approval: TNC-00001-26. Null until then. The number increments for each assignment; the year is the year it is assigned.
+  membershipId   String?         @unique
   firstName      String
   lastName       String
   mobileNumber   String

@@ -26,6 +26,7 @@ describe('parseArticleContent', () => {
       tags: ['hope'],
       type: 'sermon',
       sermonDate: new Date('2026-01-04T00:00:00.000Z'),
+      language: 'english',
       imageKey: null,
       fileKey: 'files/notes.pdf',
       videoLink: null,
@@ -100,6 +101,34 @@ describe('parseArticleContent', () => {
       type: 'glc',
       sermonDate: new Date('2026-01-04T00:00:00.000Z'),
     });
+  });
+
+  it('defaults language to english and accepts tagalog', () => {
+    expect(
+      parseArticleContent({
+        title: 'Linggo',
+        type: 'sermon',
+        sermonDate: '2026-01-04',
+        language: 'tagalog',
+      }),
+    ).toMatchObject({ language: 'tagalog' });
+
+    expect(
+      parseArticleContent({
+        title: 'Sunday',
+        type: 'sermon',
+        sermonDate: '2026-01-04',
+      }),
+    ).toMatchObject({ language: 'english' });
+
+    expect(() =>
+      parseArticleContent({
+        title: 'Sunday',
+        type: 'sermon',
+        sermonDate: '2026-01-04',
+        language: 'spanish',
+      }),
+    ).toThrow(BadRequestException);
   });
 
   it('rejects an unknown type', () => {

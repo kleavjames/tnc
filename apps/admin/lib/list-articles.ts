@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import {
   ARTICLE_TYPE_LABELS,
   type Article,
+  type ArticleLanguage,
+  type ArticleLocaleSummary,
   type ArticleStatus,
   type ArticleType,
 } from "./articles";
@@ -16,6 +18,16 @@ const ARTICLE_STATUSES = new Set<ArticleStatus>([
   "unpublish",
   "published",
 ]);
+
+export type ArticleLocaleRecord = {
+  language: ArticleLanguage;
+  title: string;
+  subtitle: string;
+  body: string;
+  verse: string;
+  articleStatus: ArticleStatus;
+  fileKey: string | null;
+};
 
 export type ArticleRecord = {
   id: string;
@@ -32,6 +44,7 @@ export type ArticleRecord = {
   videoLink: string | null;
   audioLink: string | null;
   seriesId: string | null;
+  locales: ArticleLocaleRecord[];
 };
 
 export async function getArticle(id: string): Promise<ArticleRecord | null> {
@@ -118,6 +131,15 @@ function parseArticleRecord(value: unknown): ArticleRecord {
     videoLink: typeof record.videoLink === "string" ? record.videoLink : null,
     audioLink: typeof record.audioLink === "string" ? record.audioLink : null,
     seriesId: typeof record.seriesId === "string" ? record.seriesId : null,
+    locales: parseLocaleRecords(record.locales, {
+      language: "english",
+      title: record.title,
+      subtitle: typeof record.subtitle === "string" ? record.subtitle : "",
+      body: typeof record.body === "string" ? record.body : "",
+      verse: typeof record.verse === "string" ? record.verse : "",
+      articleStatus: record.articleStatus,
+      fileKey: typeof record.fileKey === "string" ? record.fileKey : null,
+    }),
   };
 }
 
@@ -146,7 +168,70 @@ function parseArticle(value: unknown): Article | null {
     articleStatus: record.articleStatus,
     uploadedAt: record.uploadedAt,
     imageKey: typeof record.imageKey === "string" ? record.imageKey : null,
+    locales: parseLocaleSummaries(record.locales, record.articleStatus),
   };
+}
+
+function parseLocaleRecords(
+  value: unknown,
+  english: ArticleLocaleRecord,
+): ArticleLocaleRecord[] {
+  const locales = localeItems(value).flatMap((record) => {
+    if (!isArticleLanguage(record.language) || !isArticleStatus(record.articleStatus)) {
+      return [];
+    }
+    return [
+      {
+        language: record.language,
+        title: typeof record.title === "string" ? record.title : "",
+        subtitle: typeof record.subtitle === "string" ? record.subtitle : "",
+        body: typeof record.body === "string" ? record.body : "",
+        verse: typeof record.verse === "string" ? record.verse : "",
+        articleStatus: record.articleStatus,
+        fileKey: typeof record.fileKey === "string" ? record.fileKey : null,
+      },
+    ];
+  });
+  if (!locales.some((locale) => locale.language === "english")) {
+    locales.unshift(english);
+  }
+  return sortLocaleRecords(locales);
+}
+
+function parseLocaleSummaries(
+  value: unknown,
+  fallback: ArticleStatus,
+): ArticleLocaleSummary[] {
+  const locales = localeItems(value).flatMap((record) => {
+    if (!isArticleLanguage(record.language) || !isArticleStatus(record.articleStatus)) {
+      return [];
+    }
+    return [{ language: record.language, articleStatus: record.articleStatus }];
+  });
+  const summaries =
+    locales.length > 0
+      ? locales
+      : [{ language: "english" as const, articleStatus: fallback }];
+  return sortLocaleRecords(summaries);
+}
+
+function localeItems(value: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter(
+    (item): item is Record<string, unknown> =>
+      Boolean(item) && typeof item === "object",
+  );
+}
+
+function sortLocaleRecords<T extends { language: ArticleLanguage }>(
+  locales: T[],
+): T[] {
+  const order: ArticleLanguage[] = ["english", "tagalog", "cebuano"];
+  return [...locales].sort(
+    (a, b) => order.indexOf(a.language) - order.indexOf(b.language),
+  );
 }
 
 function sermonDay(value: unknown): string | null {
@@ -159,6 +244,12 @@ function sermonDay(value: unknown): string | null {
 
 function isArticleType(value: unknown): value is ArticleType {
   return typeof value === "string" && ARTICLE_TYPES.has(value as ArticleType);
+}
+
+function isArticleLanguage(value: unknown): value is ArticleLanguage {
+  return (
+    value === "english" || value === "tagalog" || value === "cebuano"
+  );
 }
 
 function isArticleStatus(value: unknown): value is ArticleStatus {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@repo/ui/components/button";
 import { Card, CardContent } from "@repo/ui/components/card";
 import {
@@ -15,6 +15,7 @@ import {
 import { Input } from "@repo/ui/components/input";
 import { Textarea } from "@repo/ui/components/textarea";
 import { cn } from "@repo/ui/lib/utils";
+import { ChoiceGroup } from "@repo/ui/choice-group";
 import type { ChurchBranch } from "@/lib/church-branches";
 import { registerMember } from "@/lib/register-member";
 
@@ -177,50 +178,6 @@ function firstErrorId(errors: Errors, meetings: Meeting[]): string | null {
   return null;
 }
 
-function ChoiceGroup<T extends string>({
-  id,
-  label,
-  value,
-  options,
-  invalid,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  value: T | null;
-  options: readonly { value: T; label: string }[];
-  invalid?: boolean;
-  onChange: (value: T) => void;
-}) {
-  return (
-    <div
-      id={id}
-      role="group"
-      aria-label={label}
-      aria-invalid={invalid || undefined}
-      tabIndex={-1}
-      className="flex flex-wrap gap-2 outline-none"
-    >
-      {options.map((option) => {
-        const selected = option.value === value;
-        return (
-          <Button
-            key={option.value}
-            type="button"
-            size="sm"
-            variant={selected ? "default" : "outline"}
-            aria-pressed={selected}
-            className="rounded-full px-4"
-            onClick={() => onChange(option.value)}
-          >
-            {option.label}
-          </Button>
-        );
-      })}
-    </div>
-  );
-}
-
 export function MembershipForm({
   branches,
 }: {
@@ -232,6 +189,7 @@ export function MembershipForm({
   const [submittedName, setSubmittedName] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const submitErrorRef = useRef<HTMLParagraphElement>(null);
   const branchOptions = (branches ?? []).map((item) => ({
     value: item.id,
     label: item.branch,
@@ -243,6 +201,11 @@ export function MembershipForm({
   useEffect(() => {
     setMaxBirthdate(todayIso());
   }, []);
+
+  useEffect(() => {
+    if (!submitError) return;
+    submitErrorRef.current?.scrollIntoView({ block: "nearest" });
+  }, [submitError]);
 
   function clearError(key: string) {
     setErrors((current) => {
@@ -413,6 +376,15 @@ export function MembershipForm({
         </div>
         <CardContent>
           <form noValidate onSubmit={onSubmit} className="flex flex-col gap-8">
+            {submitError ? (
+              <p
+                ref={submitErrorRef}
+                role="alert"
+                className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+              >
+                {submitError}
+              </p>
+            ) : null}
             <FieldGroup>
               <div className="grid gap-5 sm:grid-cols-2">
                 <Field>
@@ -739,11 +711,6 @@ export function MembershipForm({
             ) : null}
 
             <div className="flex flex-col gap-3">
-              {submitError ? (
-                <p className="text-sm text-destructive" role="alert">
-                  {submitError}
-                </p>
-              ) : null}
               <Button
                 type="submit"
                 size="xl"

@@ -1,4 +1,5 @@
 export type ArticleContent = {
+  language: "english" | "tagalog" | "cebuano";
   title: string;
   subtitle: string;
   body: string;
@@ -40,8 +41,11 @@ export function publishArticle(
   return send(`/api/articles/${encodeURIComponent(id)}/publish`, "POST", input);
 }
 
-export function unpublishArticle(id: string): Promise<SavedArticle> {
-  return send(`/api/articles/${encodeURIComponent(id)}/unpublish`, "POST");
+export function unpublishArticle(
+  id: string,
+  input: ArticleContent,
+): Promise<SavedArticle> {
+  return send(`/api/articles/${encodeURIComponent(id)}/unpublish`, "POST", input);
 }
 
 async function send(

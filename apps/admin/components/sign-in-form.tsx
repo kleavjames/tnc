@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { Button } from "@repo/ui/components/button";
 import {
   Field,
@@ -15,6 +16,7 @@ const initialState: SignInState = { error: null };
 
 export function SignInForm() {
   const [state, action, pending] = useActionState(signIn, initialState);
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <form action={action} className="flex flex-col gap-6">
@@ -33,14 +35,27 @@ export function SignInForm() {
 
         <Field>
           <FieldLabel htmlFor="password">Password</FieldLabel>
-          <Input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            className="h-10"
-          />
+          <div className="relative">
+            <Input
+              id="password"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              required
+              className="h-10 pr-10"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-pressed={showPassword}
+              onClick={() => setShowPassword((current) => !current)}
+            >
+              {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+            </Button>
+          </div>
         </Field>
       </FieldGroup>
 
