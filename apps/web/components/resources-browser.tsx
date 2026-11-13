@@ -54,7 +54,8 @@ export function ResourcesBrowser({
       .toLowerCase()
       .includes(needle);
   });
-  const visible = filtered.slice(0, count);
+  const ordered = filtered.slice().sort(byLatestSermonDate);
+  const visible = ordered.slice(0, count);
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-12 lg:px-8 lg:py-16">
@@ -120,7 +121,7 @@ export function ResourcesBrowser({
         </ul>
       )}
 
-      {count < filtered.length ? (
+      {count < ordered.length ? (
         <div className="flex justify-center">
           <button
             type="button"
@@ -136,6 +137,17 @@ export function ResourcesBrowser({
       ) : null}
     </main>
   );
+}
+
+function byLatestSermonDate(
+  a: PublishedArticleSummary,
+  b: PublishedArticleSummary,
+): number {
+  const bySermonDate = Date.parse(articleDate(b)) - Date.parse(articleDate(a));
+  if (bySermonDate !== 0) {
+    return bySermonDate;
+  }
+  return Date.parse(b.uploadedAt) - Date.parse(a.uploadedAt);
 }
 
 function SeriesPill({
@@ -171,7 +183,8 @@ function ResourceCard({ article }: { article: PublishedArticleSummary }) {
   const locale =
     article.locales.find((item) => item.language === language) ??
     article.locales[0];
-  const meta = [locale?.verse ?? "", formatMessageDate(articleDate(article))]
+  const sermonDate = formatMessageDate(articleDate(article));
+  const meta = [locale?.verse ?? "", sermonDate]
     .filter((item) => item.length > 0)
     .join(" · ");
   const options = ARTICLE_LANGUAGE_OPTIONS.filter((option) =>
